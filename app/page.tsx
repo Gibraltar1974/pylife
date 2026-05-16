@@ -65,7 +65,7 @@ export default function PyLifeDashboard() {
 
   const handlePurchase = async () => {
     try {
-      const res = await fetch('/api/pay', { method: 'POST' });
+      const res = await fetch('/api/stripe-session', { method: 'POST' });
       const data = await res.json();
       if (data.url) {
         const newWindow = window.open(data.url, '_blank', 'noopener,noreferrer');
@@ -80,7 +80,7 @@ export default function PyLifeDashboard() {
       }
     } catch (e: any) {
       console.error(e);
-      setNotification({ message: e.message === 'Failed to fetch' ? 'Failed to fetch (Adblocker might be blocking /api/pay).' : 'Network error communicating with the checkout API.', type: 'error' });
+      setNotification({ message: e.message === 'Failed to fetch' ? 'Failed to fetch (Adblocker might be blocking the request).' : 'Network error communicating with the checkout API.', type: 'error' });
     }
   };
 
@@ -119,7 +119,7 @@ export default function PyLifeDashboard() {
         payload.load_sequence = parsedSequence;
       }
 
-      const response = await fetch('/api/compute', {
+      const response = await fetch('/api/hf-compute', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -142,7 +142,7 @@ export default function PyLifeDashboard() {
       if (error instanceof Error) {
         errorMessage = error.message;
         if (error.message.includes("Failed to fetch") || error.name === 'TypeError') {
-            errorMessage = "Network Error (Failed to fetch). Maybe an adblocker is blocking the request to /api/compute, or the connection dropped.";
+            errorMessage = "Network Error (Failed to fetch). Maybe an adblocker is blocking the request, or the connection dropped.";
         }
       }
       
