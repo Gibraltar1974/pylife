@@ -530,9 +530,19 @@ export default function PyLifeDashboard() {
       </main>
 
       {/* Footer Details */}
-      <footer className="px-6 md:px-12 py-4 flex flex-col md:flex-row justify-between items-center gap-4 border-t border-[#1A1A1A] text-[9px] uppercase tracking-[0.2em] font-medium shrink-0">
+      <footer className="border-t border-[#1A1A1A] px-6 md:px-12 py-6 flex flex-col md:flex-row justify-between items-center gap-6 text-[9px] uppercase tracking-[0.2em] font-medium shrink-0">
         <div>© 2026 Project Life Calculator</div>
-        <div className="flex gap-6 md:gap-12">
+        
+        <div className="flex flex-col md:flex-row items-center gap-4 text-center md:text-left opacity-80">
+          <span className="leading-relaxed">Uses the open-source calculation engine <a href="https://pylife.readthedocs.io/en/stable/README.html#purpose-of-the-project" target="_blank" rel="noopener noreferrer" className="font-bold underline hover:opacity-100">"pylife"</a></span>
+          <a href="https://pylife.readthedocs.io/en/stable/README.html#purpose-of-the-project" target="_blank" rel="noopener noreferrer" className="transition-opacity hover:opacity-100 flex items-center justify-center">
+            <img src="/pylife-logo-16x9_res_800x450.webp" alt="pyLife Logo" className="h-8 object-contain" />
+          </a>
+          
+          <span className="leading-relaxed">developed by</span>
+          <a href="https://www.bosch.com/stories/bringing-open-source-to-mechanical-engineering/" target="_blank" rel="noopener noreferrer" className="transition-opacity hover:opacity-100 flex items-center">
+            <img src="/bosch-logo.png" alt="Bosch Logo" className="h-8 object-contain" />
+          </a>
         </div>
       </footer>
     </div>
