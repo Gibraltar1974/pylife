@@ -1,9 +1,19 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Activity, Settings2, Server, Globe2, Cpu, LineChart as LineChartIcon, CreditCard } from 'lucide-react';
+import { Activity, Settings2, Server, Globe2, Cpu, LineChart as LineChartIcon, CreditCard, Info } from 'lucide-react';
 import { motion } from 'motion/react';
-import { ComposedChart, Line, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { ComposedChart, Line, Scatter, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+
+const InfoTooltip = ({ content }: { content: string }) => (
+  <div className="group relative inline-flex items-center justify-center ml-1">
+    <Info className="w-[10px] h-[10px] opacity-40 hover:opacity-100 cursor-help" />
+    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-[#1A1A1A] text-white text-[10px] leading-relaxed hidden group-hover:block z-50 rounded-sm font-sans normal-case tracking-normal shadow-xl">
+      {content}
+      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#1A1A1A]" />
+    </div>
+  </div>
+);
 
 const generateSNData = (k: number, sd: number, nd: number) => {
   const data = [];
@@ -277,12 +287,20 @@ export default function PyLifeDashboard() {
                             className="bg-black/5 border border-black/10 px-2 py-1 text-[9px] uppercase font-bold outline-none cursor-pointer hover:bg-black/10 transition-colors"
                             onChange={(e) => {
                               if (e.target.value === 'steel') { setK1(5.0); setSd(200); setNd(2000000); }
+                              if (e.target.value === 'high_strength_steel') { setK1(6.0); setSd(400); setNd(2000000); }
                               if (e.target.value === 'aluminum') { setK1(7.0); setSd(100); setNd(10000000); }
+                              if (e.target.value === 'cast_iron') { setK1(4.5); setSd(150); setNd(2000000); }
+                              if (e.target.value === 'titanium') { setK1(8.0); setSd(350); setNd(5000000); }
+                              if (e.target.value === 'copper') { setK1(6.5); setSd(80); setNd(10000000); }
                             }}
                           >
                             <option value="custom">Preset...</option>
-                            <option value="steel">Generic Steel</option>
+                            <option value="steel">Structural Steel (S235/S355)</option>
+                            <option value="high_strength_steel">High Strength Steel</option>
                             <option value="aluminum">Generic Aluminum</option>
+                            <option value="cast_iron">Cast Iron</option>
+                            <option value="titanium">Titanium Alloy</option>
+                            <option value="copper">Copper Alloy</option>
                           </select>
                         </div>
                         <p className="text-[9px] opacity-60 mt-1 leading-relaxed">
@@ -291,21 +309,30 @@ export default function PyLifeDashboard() {
                         </p>
                         <div className="grid grid-cols-3 gap-4">
                           <div className="space-y-1">
-                            <label className="text-[10px] uppercase tracking-tighter font-bold opacity-60">k (Slope)</label>
+                            <label className="text-[10px] uppercase tracking-tighter font-bold flex items-center opacity-70">
+                              k (Slope)
+                              <InfoTooltip content="The slope of the Wöhler curve on a log-log scale. Higher value indicates more life degradation per stress drop." />
+                            </label>
                             <input 
                               type="number" step="0.1" value={k1} onChange={e => setK1(Number(e.target.value))}
                               className="w-full bg-white/50 border border-black/20 px-2 py-1.5 text-xs outline-none focus:border-[#1A1A1A] font-mono"
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[10px] uppercase tracking-tighter font-bold opacity-60">SD (Endurance)</label>
+                            <label className="text-[10px] uppercase tracking-tighter font-bold flex items-center opacity-70">
+                              SD (Endurance)
+                              <InfoTooltip content="Endurance limit or fatigue limit. Below this stress amplitude, life is considered theoretically infinite." />
+                            </label>
                             <input 
                               type="number" step="1" value={sd} onChange={e => setSd(Number(e.target.value))}
                               className="w-full bg-white/50 border border-black/20 px-2 py-1.5 text-xs outline-none focus:border-[#1A1A1A] font-mono"
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[10px] uppercase tracking-tighter font-bold opacity-60">ND (Cycles)</label>
+                            <label className="text-[10px] uppercase tracking-tighter font-bold flex items-center opacity-70">
+                              ND (Cycles)
+                              <InfoTooltip content="Transition point on the cycle axis indicating the start of the endurance limit." />
+                            </label>
                             <input 
                               type="number" step="1000" value={nd} onChange={e => setNd(Number(e.target.value))}
                               className="w-full bg-white/50 border border-black/20 px-2 py-1.5 text-xs outline-none focus:border-[#1A1A1A] font-mono"
@@ -316,10 +343,10 @@ export default function PyLifeDashboard() {
 
                       {/* Mean Stress Correction */}
                       <div className="space-y-2 border-t border-black/5 pt-4">
-                        <label className="text-xs font-medium">Mean Stress Correction</label>
-                        <div className="text-[9px] opacity-60 mb-2 leading-relaxed">
-                          <p className="mb-1">Adjusts the fatigue life calculation for cycles with a non-zero mean stress.</p>
-                        </div>
+                        <label className="text-xs font-medium flex items-center">
+                          Mean Stress Correction
+                          <InfoTooltip content="Corrects life calculations when the mean stress is not zero. Tensile mean stress cuts life, compressive increases it." />
+                        </label>
                         <select 
                           value={correction}
                           onChange={(e) => setCorrection(e.target.value)}
@@ -338,7 +365,10 @@ export default function PyLifeDashboard() {
                           <div className="space-y-6">
                             <div className="space-y-2">
                               <div className="flex justify-between items-end">
-                                <label className="text-xs font-medium">Stress Amplitude (Sa)</label>
+                                <label className="text-xs font-medium flex items-center">
+                                  Stress Amplitude (Sa)
+                                  <InfoTooltip content="The amplitude of the cyclic stress: (max - min) / 2" />
+                                </label>
                                 <span className="font-serif italic text-lg">{stressAmplitude} <span className="text-[10px] font-sans not-italic uppercase ml-1">MPa</span></span>
                               </div>
                               <input
@@ -349,7 +379,10 @@ export default function PyLifeDashboard() {
 
                             <div className="space-y-2">
                               <div className="flex justify-between items-end">
-                                <label className="text-xs font-medium">Mean Stress (Sm)</label>
+                                <label className="text-xs font-medium flex items-center">
+                                  Mean Stress (Sm)
+                                  <InfoTooltip content="The average value of the cyclic stress: (max + min) / 2" />
+                                </label>
                                 <span className="font-serif italic text-lg">{meanStress} <span className="text-[10px] font-sans not-italic uppercase ml-1">MPa</span></span>
                               </div>
                               <input
@@ -361,7 +394,10 @@ export default function PyLifeDashboard() {
                         ) : (
                           <div className="space-y-2">
                             <div className="flex justify-between items-end">
-                              <label className="text-xs font-medium">Load Sequence (Peaks and Valleys)</label>
+                              <label className="text-xs font-medium flex items-center">
+                                Load Sequence (Peaks and Valleys)
+                                <InfoTooltip content="A sequence of points over time representing your variable loading peaks and valleys. Rainflow counting extracts the exact cycles from this sequence." />
+                              </label>
                             </div>
                             <textarea
                               value={loadSequence}
@@ -382,34 +418,55 @@ export default function PyLifeDashboard() {
                       </p>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
-                          <label className="text-[10px] uppercase tracking-tighter font-bold opacity-60">K' (Strength Coeff)</label>
+                          <label className="text-[10px] uppercase tracking-tighter font-bold flex items-center opacity-70">
+                            K' (Strength Coeff)
+                            <InfoTooltip content="Cyclic strength coefficient, obtained from fully reversed strain-controlled tests." />
+                          </label>
                           <input type="number" step="10" value={kPrime} onChange={e => setKPrime(Number(e.target.value))} className="w-full bg-white/50 border border-black/20 px-2 py-1.5 text-xs outline-none focus:border-[#1A1A1A] font-mono"/>
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[10px] uppercase tracking-tighter font-bold opacity-60">n' (Hardening Exp)</label>
+                          <label className="text-[10px] uppercase tracking-tighter font-bold flex items-center opacity-70">
+                            n' (Hardening Exp)
+                            <InfoTooltip content="Cyclic strain hardening exponent." />
+                          </label>
                           <input type="number" step="0.01" value={nPrime} onChange={e => setNPrime(Number(e.target.value))} className="w-full bg-white/50 border border-black/20 px-2 py-1.5 text-xs outline-none focus:border-[#1A1A1A] font-mono"/>
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[10px] uppercase tracking-tighter font-bold opacity-60">σ'f (Fatigue Strength)</label>
+                          <label className="text-[10px] uppercase tracking-tighter font-bold flex items-center opacity-70">
+                            σ'f (Fatigue Strength)
+                            <InfoTooltip content="Fatigue strength coefficient, intersects the elastic strain life line at 1 reversal." />
+                          </label>
                           <input type="number" step="10" value={sigmaF} onChange={e => setSigmaF(Number(e.target.value))} className="w-full bg-white/50 border border-black/20 px-2 py-1.5 text-xs outline-none focus:border-[#1A1A1A] font-mono"/>
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[10px] uppercase tracking-tighter font-bold opacity-60">b (Strength Exp)</label>
+                          <label className="text-[10px] uppercase tracking-tighter font-bold flex items-center opacity-70">
+                            b (Strength Exp)
+                            <InfoTooltip content="Fatigue strength exponent, slope of the elastic strain life line." />
+                          </label>
                           <input type="number" step="0.01" value={bExp} onChange={e => setBExp(Number(e.target.value))} className="w-full bg-white/50 border border-black/20 px-2 py-1.5 text-xs outline-none focus:border-[#1A1A1A] font-mono"/>
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[10px] uppercase tracking-tighter font-bold opacity-60">ε'f (Ductility)</label>
+                          <label className="text-[10px] uppercase tracking-tighter font-bold flex items-center opacity-70">
+                            ε'f (Ductility)
+                            <InfoTooltip content="Fatigue ductility coefficient, intersects the plastic strain life line at 1 reversal." />
+                          </label>
                           <input type="number" step="0.05" value={epsilonF} onChange={e => setEpsilonF(Number(e.target.value))} className="w-full bg-white/50 border border-black/20 px-2 py-1.5 text-xs outline-none focus:border-[#1A1A1A] font-mono"/>
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[10px] uppercase tracking-tighter font-bold opacity-60">c (Ductility Exp)</label>
+                          <label className="text-[10px] uppercase tracking-tighter font-bold flex items-center opacity-70">
+                            c (Ductility Exp)
+                            <InfoTooltip content="Fatigue ductility exponent, slope of the plastic strain life line." />
+                          </label>
                           <input type="number" step="0.01" value={cExp} onChange={e => setCExp(Number(e.target.value))} className="w-full bg-white/50 border border-black/20 px-2 py-1.5 text-xs outline-none focus:border-[#1A1A1A] font-mono"/>
                         </div>
                       </div>
 
                       <div className="border-t border-black/5 pt-4 mt-4 space-y-2">
                          <div className="flex justify-between items-end">
-                            <label className="text-xs font-medium">Notch Factor (Kt)</label>
+                            <label className="text-xs font-medium flex items-center">
+                              Notch Factor (Kt)
+                              <InfoTooltip content="Theoretical stress concentration factor. 1.0 means perfectly smooth surface, >1 implies a notch." />
+                            </label>
                             <span className="font-serif italic text-lg">{kt}</span>
                          </div>
                          <input
@@ -427,18 +484,27 @@ export default function PyLifeDashboard() {
                       </p>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
-                          <label className="text-[10px] uppercase tracking-tighter font-bold opacity-60">Weibull Shape (β)</label>
+                          <label className="text-[10px] uppercase tracking-tighter font-bold flex items-center opacity-70">
+                            Weibull Shape (β)
+                            <InfoTooltip content="Shape parameter. β<1 indicates infant mortality, β=1 random failures, β>1 wear-out over time." />
+                          </label>
                           <input type="number" step="0.1" value={weibullBeta} onChange={e => setWeibullBeta(Number(e.target.value))} className="w-full bg-white/50 border border-black/20 px-2 py-1.5 text-xs outline-none focus:border-[#1A1A1A] font-mono"/>
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[10px] uppercase tracking-tighter font-bold opacity-60">Weibull Scale (η)</label>
+                          <label className="text-[10px] uppercase tracking-tighter font-bold flex items-center opacity-70">
+                            Weibull Scale (η)
+                            <InfoTooltip content="Scale parameter or characteristic life. This is the life at which 63.2% of components will have failed." />
+                          </label>
                           <input type="number" step="1000" value={weibullEta} onChange={e => setWeibullEta(Number(e.target.value))} className="w-full bg-white/50 border border-black/20 px-2 py-1.5 text-xs outline-none focus:border-[#1A1A1A] font-mono"/>
                         </div>
                       </div>
                       
                       <div className="border-t border-black/5 pt-4 mt-4 space-y-2">
                          <div className="flex justify-between items-end">
-                            <label className="text-xs font-medium">Target Reliability Goal</label>
+                            <label className="text-xs font-medium flex items-center">
+                              Target Reliability Goal
+                              <InfoTooltip content="The desired probability of survival." />
+                            </label>
                             <span className="font-serif italic text-lg">{(targetReliability*100).toFixed(1)}%</span>
                          </div>
                          <input
@@ -579,7 +645,7 @@ export default function PyLifeDashboard() {
                             tick={{ fontSize: 10, fontFamily: 'monospace', fill: '#1A1A1A', opacity: 0.6 }}
                             label={{ value: 'Stress Amplitude (MPa)', angle: -90, position: 'insideLeft', offset: 0, fontSize: 10, fontWeight: 'bold', fill: '#1A1A1A', opacity: 0.5 }}
                           />
-                          <Tooltip content={<CustomTooltip />} />
+                          <RechartsTooltip content={<CustomTooltip />} />
                           <Line 
                             type="monotone" 
                             dataKey="S" 
