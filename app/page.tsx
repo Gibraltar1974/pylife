@@ -76,7 +76,7 @@ export default function PyLifeDashboard() {
 
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'result'|'chart'>('result');
-  const [result, setResult] = useState<null | { status: string; estimated_life_cycles?: number }>(null);
+  const [result, setResult] = useState<null | { status: string; estimated_life_cycles?: number; extracted_parameters?: Record<string, any> }>(null);
   const [credits, setCredits] = useState<number>(0);
   const [notification, setNotification] = useState<{message: string, type: 'error' | 'success'} | null>(null);
 
@@ -688,11 +688,11 @@ export default function PyLifeDashboard() {
                          {result.error_details}
                        </div>
                     </div>
-                  ) : fatigueModule === 'data_fitting' && result ? (
+                  ) : fatigueModule === 'data_fitting' && result && result.extracted_parameters ? (
                     <div className="flex-1 flex flex-col justify-center py-6 px-4">
                       <span className="text-[10px] uppercase tracking-widest block mb-6 opacity-60">Fitted Parameters</span>
                       <div className="grid grid-cols-2 gap-4">
-                        {Object.entries(result).map(([key, val]) => (
+                        {Object.entries(result.extracted_parameters).map(([key, val]) => (
                           <div key={key} className="border border-black/10 p-4">
                             <span className="text-[10px] uppercase font-bold opacity-60 block mb-2">{key.replace(/_/g, ' ')}</span>
                             <span className="font-mono text-lg">{typeof val === 'number' ? val.toPrecision(5) : String(val)}</span>
