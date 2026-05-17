@@ -25,7 +25,8 @@ function getStripe() {
 export async function POST(request: Request) {
   try {
     const stripe = getStripe();
-    const appUrl = process.env.APP_URL || 'http://localhost:3000';
+    const origin = request.headers.get('origin');
+    const appUrl = origin || process.env.APP_URL || 'http://localhost:3000';
 
     // Crear una sesión de pago de Stripe (Checkout Session)
     const session = await stripe.checkout.sessions.create({
