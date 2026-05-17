@@ -706,12 +706,6 @@ export default function PyLifeDashboard() {
                     </div>
                   )}
 
-                  <div className="w-full border-t border-black/10 pt-4 mt-auto">
-                    <span className="text-[9px] uppercase tracking-widest mb-1 block opacity-50">Raw Response</span>
-                    <pre className="text-[10px] text-[#1A1A1A] font-mono whitespace-pre-wrap overflow-auto max-h-24 bg-black/5 p-2 border border-black/10">
-                      {JSON.stringify(result, null, 2)}
-                    </pre>
-                  </div>
                 </motion.div>
               )}
             </div>
