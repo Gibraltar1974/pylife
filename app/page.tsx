@@ -54,6 +54,7 @@ export default function PyLifeDashboard() {
   const [correction, setCorrection] = useState('goodman');
   const [analysisType, setAnalysisType] = useState('single_load');
   const [loadSequence, setLoadSequence] = useState('100, 200, -50, 250, -100, 50');
+  const [materialPreset, setMaterialPreset] = useState('steel');
 
   // Strain-Life State
   const [kPrime, setKPrime] = useState(1200);
@@ -118,6 +119,16 @@ export default function PyLifeDashboard() {
         S: stressAmplitude 
       }]
     : [];
+
+  const handleMaterialChange = (mat: string) => {
+    setMaterialPreset(mat);
+    if (mat === 'steel') { setK1(5.0); setSd(200); setNd(2000000); setKPrime(1200); setNPrime(0.15); setSigmaF(1000); setBExp(-0.08); setEpsilonF(0.5); setCExp(-0.6); }
+    if (mat === 'high_strength_steel') { setK1(6.0); setSd(400); setNd(2000000); setKPrime(1800); setNPrime(0.12); setSigmaF(1500); setBExp(-0.07); setEpsilonF(0.3); setCExp(-0.5); }
+    if (mat === 'aluminum') { setK1(7.0); setSd(100); setNd(10000000); setKPrime(600); setNPrime(0.11); setSigmaF(800); setBExp(-0.1); setEpsilonF(0.3); setCExp(-0.7); }
+    if (mat === 'cast_iron') { setK1(4.5); setSd(150); setNd(2000000); setKPrime(1000); setNPrime(0.2); setSigmaF(600); setBExp(-0.12); setEpsilonF(0.1); setCExp(-0.8); }
+    if (mat === 'titanium') { setK1(8.0); setSd(350); setNd(5000000); setKPrime(1500); setNPrime(0.12); setSigmaF(1200); setBExp(-0.09); setEpsilonF(0.4); setCExp(-0.5); }
+    if (mat === 'copper') { setK1(6.5); setSd(80); setNd(10000000); setKPrime(500); setNPrime(0.15); setSigmaF(400); setBExp(-0.1); setEpsilonF(0.4); setCExp(-0.6); }
+  };
 
   const handleSimulate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -233,15 +244,15 @@ export default function PyLifeDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-0 border-b border-[#1A1A1A] flex-1">
           
           {/* Left: Input & Parameters */}
-          <div className="md:col-span-4 border-b md:border-b-0 md:border-r border-[#1A1A1A] py-10 md:pr-10 flex flex-col">
-            <h1 className="font-serif text-5xl md:text-7xl leading-[0.9] mb-8">
+          <div className="md:col-span-4 border-b md:border-b-0 md:border-r border-[#1A1A1A] py-6 md:pr-8 flex flex-col h-[calc(100vh-80px)] overflow-y-auto">
+            <h1 className="font-serif text-4xl md:text-5xl leading-[0.9] mb-4">
               Fatigue <br/><span className="italic">Analysis</span>
             </h1>
-            <p className="text-sm leading-relaxed mb-10 opacity-80">
-              Calculate the estimated fatigue life of materials under variable loading. Configure the Wöhler curve parameters and choose between a single load or a complex load sequence analysis.
+            <p className="text-xs leading-relaxed mb-6 opacity-80 hidden md:block">
+              Calculate the estimated fatigue life of materials under variable loading.
             </p>
 
-            <form onSubmit={handleSimulate} className="space-y-6 flex-1 flex flex-col">
+            <form onSubmit={handleSimulate} className="space-y-4 flex-1 flex flex-col">
               
               <div className="flex border-b border-black/10 gap-4">
                 <button type="button" onClick={() => setFatigueModule('stress_life')} className={`pb-2 text-[10px] uppercase font-bold tracking-widest ${fatigueModule === 'stress_life' ? 'border-b-2 border-[#1A1A1A] opacity-100' : 'opacity-40 hover:opacity-100'}`}>Stress-Life (S-N)</button>
@@ -255,7 +266,7 @@ export default function PyLifeDashboard() {
                   <Settings2 className="w-3 h-3" /> {fatigueModule === 'stress_life' ? 'S-N Parameters' : fatigueModule === 'strain_life' ? 'Local Strain parameters' : 'Weibull & Stats'}
                 </label>
                 
-                <div className="space-y-6 mt-4">
+                <div className="space-y-3 mt-4">
                   {fatigueModule === 'stress_life' && (
                     <>
                       {/* Analysis Type */}
@@ -280,19 +291,16 @@ export default function PyLifeDashboard() {
                       </div>
 
                       {/* Material Parameters (Wöhler Curve) */}
-                      <div className="border-t border-black/5 pt-4 space-y-4">
+                      <div className="border-t border-black/5 pt-4 space-y-3">
                         <div className="flex justify-between items-end">
-                          <label className="text-xs font-medium">Material Properties</label>
+                          <label className="text-xs font-medium flex items-center">
+                            Material Properties
+                            <InfoTooltip content="You can select a material preset or manually define the parameters. These parameters define the Wöhler (S-N) curve of the material." />
+                          </label>
                           <select 
+                            value={materialPreset}
                             className="bg-black/5 border border-black/10 px-2 py-1 text-[9px] uppercase font-bold outline-none cursor-pointer hover:bg-black/10 transition-colors"
-                            onChange={(e) => {
-                              if (e.target.value === 'steel') { setK1(5.0); setSd(200); setNd(2000000); }
-                              if (e.target.value === 'high_strength_steel') { setK1(6.0); setSd(400); setNd(2000000); }
-                              if (e.target.value === 'aluminum') { setK1(7.0); setSd(100); setNd(10000000); }
-                              if (e.target.value === 'cast_iron') { setK1(4.5); setSd(150); setNd(2000000); }
-                              if (e.target.value === 'titanium') { setK1(8.0); setSd(350); setNd(5000000); }
-                              if (e.target.value === 'copper') { setK1(6.5); setSd(80); setNd(10000000); }
-                            }}
+                            onChange={(e) => handleMaterialChange(e.target.value)}
                           >
                             <option value="custom">Preset...</option>
                             <option value="steel">Structural Steel (S235/S355)</option>
@@ -303,11 +311,7 @@ export default function PyLifeDashboard() {
                             <option value="copper">Copper Alloy</option>
                           </select>
                         </div>
-                        <p className="text-[9px] opacity-60 mt-1 leading-relaxed">
-                          These parameters define the Wöhler (S-N) curve of the <b>material</b> being analyzed. 
-                          <b>k</b> is the slope, <b>SD</b> is the endurance limit, and <b>ND</b> are the cycles at the limit.
-                        </p>
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-3 gap-2">
                           <div className="space-y-1">
                             <label className="text-[10px] uppercase tracking-tighter font-bold flex items-center opacity-70">
                               k (Slope)
@@ -345,7 +349,7 @@ export default function PyLifeDashboard() {
                       <div className="space-y-2 border-t border-black/5 pt-4">
                         <label className="text-xs font-medium flex items-center">
                           Mean Stress Correction
-                          <InfoTooltip content="Corrects life calculations when the mean stress is not zero. Tensile mean stress cuts life, compressive increases it." />
+                          <InfoTooltip content="Goodman: brittle materials (conservative). Gerber: ductile metals. Morrow: steel alloys. Tensile mean stress cuts life, compressive increases it." />
                         </label>
                         <select 
                           value={correction}
@@ -414,25 +418,25 @@ export default function PyLifeDashboard() {
                   {fatigueModule === 'strain_life' && (
                     <div className="space-y-4">
                       <div className="flex justify-between items-end">
-                        <label className="text-xs font-medium">Material Properties</label>
+                        <label className="text-xs font-medium flex items-center">
+                          Material Properties
+                          <InfoTooltip content="Local Strain Approach. You can select a material preset or manually define the Ramberg-Osgood and Manson-Coffin-Basquin parameters." />
+                        </label>
                         <select 
+                          value={materialPreset}
                           className="bg-black/5 border border-black/10 px-2 py-1 text-[9px] uppercase font-bold outline-none cursor-pointer hover:bg-black/10 transition-colors"
-                          onChange={(e) => {
-                            if (e.target.value === 'steel') { setKPrime(1200); setNPrime(0.15); setSigmaF(1000); setBExp(-0.08); setEpsilonF(0.5); setCExp(-0.6); }
-                            if (e.target.value === 'aluminum') { setKPrime(600); setNPrime(0.11); setSigmaF(800); setBExp(-0.1); setEpsilonF(0.3); setCExp(-0.7); }
-                            if (e.target.value === 'titanium') { setKPrime(1500); setNPrime(0.12); setSigmaF(1200); setBExp(-0.09); setEpsilonF(0.4); setCExp(-0.5); }
-                          }}
+                          onChange={(e) => handleMaterialChange(e.target.value)}
                         >
-                          <option value="custom">Preset...</option>
-                          <option value="steel">Generic Steel</option>
-                          <option value="aluminum">Generic Aluminum</option>
-                          <option value="titanium">Titanium Alloy</option>
+                            <option value="custom">Preset...</option>
+                            <option value="steel">Structural Steel (S235/S355)</option>
+                            <option value="high_strength_steel">High Strength Steel</option>
+                            <option value="aluminum">Generic Aluminum</option>
+                            <option value="cast_iron">Cast Iron</option>
+                            <option value="titanium">Titanium Alloy</option>
+                            <option value="copper">Copper Alloy</option>
                         </select>
                       </div>
-                      <p className="text-[9px] opacity-60 mt-1 leading-relaxed">
-                        Local Strain Approach. You can select a material preset or manually define the Ramberg-Osgood and Manson-Coffin-Basquin parameters typically found in material data sheets.
-                      </p>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-1">
                           <label className="text-[10px] uppercase tracking-tighter font-bold flex items-center opacity-70">
                             K' (Strength Coeff)
@@ -496,25 +500,32 @@ export default function PyLifeDashboard() {
                   {fatigueModule === 'reliability' && (
                     <div className="space-y-4">
                       <div className="flex justify-between items-end">
-                        <label className="text-xs font-medium">Failure Mode Presets</label>
+                        <label className="text-xs font-medium flex items-center">
+                          Failure Mode Presets
+                          <InfoTooltip content="Assess fatigue failure probability. Shape (β) dictates failure type (infant, random, wear-out). Scale (η) is characteristic life from physical tests." />
+                        </label>
                         <select 
+                          defaultValue="fatigue"
                           className="bg-black/5 border border-black/10 px-2 py-1 text-[9px] uppercase font-bold outline-none cursor-pointer hover:bg-black/10 transition-colors"
                           onChange={(e) => {
                             if (e.target.value === 'fatigue') { setWeibullBeta(3.0); setWeibullEta(500000); }
                             if (e.target.value === 'bearing') { setWeibullBeta(1.5); setWeibullEta(1000000); }
+                            if (e.target.value === 'wearout') { setWeibullBeta(4.0); setWeibullEta(300000); }
+                            if (e.target.value === 'corrosion') { setWeibullBeta(2.0); setWeibullEta(200000); }
                             if (e.target.value === 'random') { setWeibullBeta(1.0); setWeibullEta(100000); }
+                            if (e.target.value === 'infant') { setWeibullBeta(0.5); setWeibullEta(50000); }
                           }}
                         >
                           <option value="custom">Preset...</option>
-                          <option value="fatigue">Mechanical Wear/Fatigue (β=3)</option>
-                          <option value="bearing">Ball Bearings Fatigue (β=1.5)</option>
+                          <option value="fatigue">Mechanical Fatigue (β=3)</option>
+                          <option value="wearout">General Wear-out (β=4)</option>
+                          <option value="bearing">Ball Bearings (β=1.5)</option>
+                          <option value="corrosion">Corrosion Fatigue (β=2)</option>
                           <option value="random">Random Failures (β=1)</option>
+                          <option value="infant">Infant Mortality (β=0.5)</option>
                         </select>
                       </div>
-                      <p className="text-[9px] opacity-60 mt-1 leading-relaxed">
-                        Assess fatigue failure probability. The Shape (β) dictates failure type (infant, random, wear-out) while Scale (η) is the characteristic life extracted from physical tests.
-                      </p>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-1">
                           <label className="text-[10px] uppercase tracking-tighter font-bold flex items-center opacity-70">
                             Weibull Shape (β)
@@ -571,10 +582,10 @@ export default function PyLifeDashboard() {
           </div>
 
           {/* Right: Visualization */}
-          <div className="md:col-span-8 p-6 md:p-10 flex flex-col min-h-[500px]">
-            <div className="flex justify-between items-start mb-8">
+          <div className="md:col-span-8 py-6 md:pl-8 flex flex-col h-[calc(100vh-80px)] overflow-y-auto">
+            <div className="flex justify-between items-start mb-6">
               <div>
-                <span className="text-[10px] uppercase tracking-widest block mb-1">Visualization 01</span>
+                <span className="text-[10px] uppercase tracking-widest block mb-1 opacity-50">Visualization</span>
                 <h2 className="font-serif text-3xl italic">Estimated Life Results</h2>
               </div>
               <div className="text-right flex items-center gap-4">
@@ -703,8 +714,8 @@ export default function PyLifeDashboard() {
                   )}
 
                   <div className="w-full border-t border-black/10 pt-4 mt-auto">
-                    <span className="text-[9px] uppercase tracking-widest mb-2 block opacity-50">Raw Response</span>
-                    <pre className="text-[10px] text-[#1A1A1A] font-mono whitespace-pre-wrap overflow-auto max-h-32 bg-black/5 p-4 border border-black/10">
+                    <span className="text-[9px] uppercase tracking-widest mb-1 block opacity-50">Raw Response</span>
+                    <pre className="text-[10px] text-[#1A1A1A] font-mono whitespace-pre-wrap overflow-auto max-h-24 bg-black/5 p-2 border border-black/10">
                       {JSON.stringify(result, null, 2)}
                     </pre>
                   </div>
@@ -712,7 +723,7 @@ export default function PyLifeDashboard() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-10 shrink-0">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 shrink-0">
               <div className="border-t border-black/10 pt-4">
                 <span className="text-[9px] uppercase font-bold block mb-1 opacity-50">Active Module</span>
                 <div className="font-serif text-lg italic">{fatigueModule === 'stress_life' ? 'S-N Curve' : fatigueModule === 'strain_life' ? 'ε-N Curve' : 'Weibull'}</div>
@@ -735,7 +746,7 @@ export default function PyLifeDashboard() {
       </main>
 
       {/* Footer Details */}
-      <footer className="border-t border-[#1A1A1A] px-6 md:px-12 py-6 flex flex-col md:flex-row justify-between items-center gap-6 text-[9px] uppercase tracking-[0.2em] font-medium shrink-0">
+      <footer className="border-t border-[#1A1A1A] px-6 md:px-12 py-4 flex flex-col md:flex-row justify-between items-center gap-4 text-[9px] uppercase tracking-[0.2em] font-medium shrink-0">
         <div>© 2026 Project Life Calculator</div>
         
         <div className="flex flex-col md:flex-row items-center gap-4 text-center md:text-left opacity-80">
