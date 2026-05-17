@@ -244,14 +244,7 @@ export default function PyLifeDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-0 border-b border-[#1A1A1A] flex-1">
           
           {/* Left: Input & Parameters */}
-          <div className="md:col-span-4 border-b md:border-b-0 md:border-r border-[#1A1A1A] py-6 md:pr-8 flex flex-col h-[calc(100vh-80px)] overflow-y-auto">
-            <h1 className="font-serif text-4xl md:text-5xl leading-[0.9] mb-4">
-              Fatigue <br/><span className="italic">Analysis</span>
-            </h1>
-            <p className="text-xs leading-relaxed mb-6 opacity-80 hidden md:block">
-              Calculate the estimated fatigue life of materials under variable loading.
-            </p>
-
+          <div className="md:col-span-4 border-b md:border-b-0 md:border-r border-[#1A1A1A] pt-4 pb-6 md:pr-8 flex flex-col">
             <form onSubmit={handleSimulate} className="space-y-4 flex-1 flex flex-col">
               
               <div className="flex border-b border-black/10 gap-4">
@@ -582,7 +575,7 @@ export default function PyLifeDashboard() {
           </div>
 
           {/* Right: Visualization */}
-          <div className="md:col-span-8 py-6 md:pl-8 flex flex-col h-[calc(100vh-80px)] overflow-y-auto">
+          <div className="md:col-span-8 pt-4 pb-6 md:pl-8 flex flex-col">
             <div className="flex justify-between items-start mb-6">
               <div>
                 <span className="text-[10px] uppercase tracking-widest block mb-1 opacity-50">Visualization</span>
@@ -668,7 +661,7 @@ export default function PyLifeDashboard() {
                       </span>
                       <ResponsiveContainer width="100%" height="100%">
                         <ComposedChart data={snData} margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#000000" strokeOpacity={0.1} />
+                          <CartesianGrid strokeDasharray="3 3" vertical={true} stroke="#000000" strokeOpacity={0.1} />
                           <XAxis 
                             dataKey="logN" 
                             type="number" 
