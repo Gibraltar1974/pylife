@@ -413,8 +413,24 @@ export default function PyLifeDashboard() {
                   
                   {fatigueModule === 'strain_life' && (
                     <div className="space-y-4">
+                      <div className="flex justify-between items-end">
+                        <label className="text-xs font-medium">Material Properties</label>
+                        <select 
+                          className="bg-black/5 border border-black/10 px-2 py-1 text-[9px] uppercase font-bold outline-none cursor-pointer hover:bg-black/10 transition-colors"
+                          onChange={(e) => {
+                            if (e.target.value === 'steel') { setKPrime(1200); setNPrime(0.15); setSigmaF(1000); setBExp(-0.08); setEpsilonF(0.5); setCExp(-0.6); }
+                            if (e.target.value === 'aluminum') { setKPrime(600); setNPrime(0.11); setSigmaF(800); setBExp(-0.1); setEpsilonF(0.3); setCExp(-0.7); }
+                            if (e.target.value === 'titanium') { setKPrime(1500); setNPrime(0.12); setSigmaF(1200); setBExp(-0.09); setEpsilonF(0.4); setCExp(-0.5); }
+                          }}
+                        >
+                          <option value="custom">Preset...</option>
+                          <option value="steel">Generic Steel</option>
+                          <option value="aluminum">Generic Aluminum</option>
+                          <option value="titanium">Titanium Alloy</option>
+                        </select>
+                      </div>
                       <p className="text-[9px] opacity-60 mt-1 leading-relaxed">
-                        Local Strain Approach. Configure Ramberg-Osgood and Manson-Coffin-Basquin parameters.
+                        Local Strain Approach. You can select a material preset or manually define the Ramberg-Osgood and Manson-Coffin-Basquin parameters typically found in material data sheets.
                       </p>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
@@ -465,7 +481,7 @@ export default function PyLifeDashboard() {
                          <div className="flex justify-between items-end">
                             <label className="text-xs font-medium flex items-center">
                               Notch Factor (Kt)
-                              <InfoTooltip content="Theoretical stress concentration factor. 1.0 means perfectly smooth surface, >1 implies a notch." />
+                              <InfoTooltip content="Geometry factor: 1.0 = Smooth/No notch, 1.5-2.5 = Mild notch (hole, fillet, groove), >3.0 = Sharp notch/crack." />
                             </label>
                             <span className="font-serif italic text-lg">{kt}</span>
                          </div>
@@ -479,21 +495,37 @@ export default function PyLifeDashboard() {
 
                   {fatigueModule === 'reliability' && (
                     <div className="space-y-4">
+                      <div className="flex justify-between items-end">
+                        <label className="text-xs font-medium">Failure Mode Presets</label>
+                        <select 
+                          className="bg-black/5 border border-black/10 px-2 py-1 text-[9px] uppercase font-bold outline-none cursor-pointer hover:bg-black/10 transition-colors"
+                          onChange={(e) => {
+                            if (e.target.value === 'fatigue') { setWeibullBeta(3.0); setWeibullEta(500000); }
+                            if (e.target.value === 'bearing') { setWeibullBeta(1.5); setWeibullEta(1000000); }
+                            if (e.target.value === 'random') { setWeibullBeta(1.0); setWeibullEta(100000); }
+                          }}
+                        >
+                          <option value="custom">Preset...</option>
+                          <option value="fatigue">Mechanical Wear/Fatigue (β=3)</option>
+                          <option value="bearing">Ball Bearings Fatigue (β=1.5)</option>
+                          <option value="random">Random Failures (β=1)</option>
+                        </select>
+                      </div>
                       <p className="text-[9px] opacity-60 mt-1 leading-relaxed">
-                        Assess fatigue failure probability and survival rates using Weibull distribution.
+                        Assess fatigue failure probability. The Shape (β) dictates failure type (infant, random, wear-out) while Scale (η) is the characteristic life extracted from physical tests.
                       </p>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
                           <label className="text-[10px] uppercase tracking-tighter font-bold flex items-center opacity-70">
                             Weibull Shape (β)
-                            <InfoTooltip content="Shape parameter. β<1 indicates infant mortality, β=1 random failures, β>1 wear-out over time." />
+                            <InfoTooltip content="Shape parameter (β). Determines failure rate. β<1: early failures, β=1: random/constant rate, β>1: wear-out/fatigue (typically 2-4 for steel)." />
                           </label>
                           <input type="number" step="0.1" value={weibullBeta} onChange={e => setWeibullBeta(Number(e.target.value))} className="w-full bg-white/50 border border-black/20 px-2 py-1.5 text-xs outline-none focus:border-[#1A1A1A] font-mono"/>
                         </div>
                         <div className="space-y-1">
                           <label className="text-[10px] uppercase tracking-tighter font-bold flex items-center opacity-70">
                             Weibull Scale (η)
-                            <InfoTooltip content="Scale parameter or characteristic life. This is the life at which 63.2% of components will have failed." />
+                            <InfoTooltip content="Scale parameter (η). The characteristic life where 63.2% of population fails. Usually obtained from historical data or physical testing." />
                           </label>
                           <input type="number" step="1000" value={weibullEta} onChange={e => setWeibullEta(Number(e.target.value))} className="w-full bg-white/50 border border-black/20 px-2 py-1.5 text-xs outline-none focus:border-[#1A1A1A] font-mono"/>
                         </div>
