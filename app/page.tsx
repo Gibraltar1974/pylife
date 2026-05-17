@@ -48,7 +48,7 @@ export default function PyLifeDashboard() {
   
   // Data Fitting State
   const [fittingType, setFittingType] = useState('sn_curve');
-  const [testData, setTestData] = useState('300, 10000\n280, 50000\n250, 200000\n210, 1000000\n190, 5000000\n190, 10000000');
+  const [testData, setTestData] = useState('300, 10000, 1\n280, 50000, 1\n250, 200000, 1\n210, 1000000, 1\n190, 5000000, 0\n180, 10000000, 0');
   // S-N State
   const [stressAmplitude, setStressAmplitude] = useState(250);
   const [meanStress, setMeanStress] = useState(50);
@@ -203,6 +203,8 @@ export default function PyLifeDashboard() {
         errorMessage = error.message;
         if (error.message.includes("Failed to fetch") || error.name === 'TypeError') {
             errorMessage = "Network Error (Failed to fetch). Maybe an adblocker is blocking the request, or the connection dropped.";
+        } else if (error.message.includes("SD_50") || error.message.includes("KeyError")) {
+            errorMessage = "Data Fitting Error: 'SD_50' missing. Ensure your Python backend uses pylife's maximum likelihood and your data includes Runouts (fracture=0) so the endurance limit can be calculated.";
         }
       }
       
@@ -515,7 +517,7 @@ export default function PyLifeDashboard() {
                         </select>
                       </div>
                       <p className="text-[9px] opacity-60 mt-1 leading-relaxed">
-                        Paste your raw fatigue experimental data. Format: <b>Stress/Strain Amplitude, Cycles</b> per line.
+                        Paste your raw fatigue experimental data. Format: <b>Stress Amplitude, Cycles, Fracture (1=Yes, 0=No runout)</b> per line.
                         We will evaluate this dataset to extract the material parameters using statistical fitting.
                       </p>
                       <div className="space-y-2">
@@ -523,7 +525,7 @@ export default function PyLifeDashboard() {
                           value={testData}
                           onChange={(e) => setTestData(e.target.value)}
                           className="w-full bg-white/50 border border-black/20 p-2 text-xs font-mono h-[140px] outline-none focus:border-[#1A1A1A]"
-                          placeholder="300, 10000&#10;280, 50000&#10;250, 200000"
+                          placeholder="300, 10000, 1&#10;280, 50000, 1&#10;190, 500000, 0"
                         />
                       </div>
                     </div>
