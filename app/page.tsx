@@ -44,7 +44,11 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function PyLifeDashboard() {
-  const [fatigueModule, setFatigueModule] = useState<'stress_life'|'strain_life'|'reliability'>('stress_life');
+  const [fatigueModule, setFatigueModule] = useState<'stress_life'|'strain_life'|'data_fitting'|'reliability'>('stress_life');
+  
+  // Data Fitting State
+  const [fittingType, setFittingType] = useState('sn_curve');
+  const [testData, setTestData] = useState('300, 10000\n280, 50000\n250, 200000\n210, 1000000\n190, 5000000\n190, 10000000');
   // S-N State
   const [stressAmplitude, setStressAmplitude] = useState(250);
   const [meanStress, setMeanStress] = useState(50);
@@ -166,6 +170,9 @@ export default function PyLifeDashboard() {
         payload.epsilon_f = epsilonF;
         payload.c_exp = cExp;
         payload.notch_kt = kt;
+      } else if (fatigueModule === 'data_fitting') {
+        payload.module = fittingType === 'sn_curve' ? 'fit_sn' : 'fit_en';
+        payload.test_data = testData;
       } else if (fatigueModule === 'reliability') {
         payload.weibull_beta = weibullBeta;
         payload.weibull_eta = weibullEta;
@@ -247,16 +254,17 @@ export default function PyLifeDashboard() {
           <div className="md:col-span-4 border-b md:border-b-0 md:border-r border-[#1A1A1A] pt-4 pb-6 md:pr-8 flex flex-col">
             <form onSubmit={handleSimulate} className="space-y-4 flex-1 flex flex-col">
               
-              <div className="flex border-b border-black/10 gap-4">
+              <div className="flex border-b border-black/10 gap-4 overflow-x-auto whitespace-nowrap">
                 <button type="button" onClick={() => setFatigueModule('stress_life')} className={`pb-2 text-[10px] uppercase font-bold tracking-widest ${fatigueModule === 'stress_life' ? 'border-b-2 border-[#1A1A1A] opacity-100' : 'opacity-40 hover:opacity-100'}`}>Stress-Life (S-N)</button>
                 <button type="button" onClick={() => setFatigueModule('strain_life')} className={`pb-2 text-[10px] uppercase font-bold tracking-widest ${fatigueModule === 'strain_life' ? 'border-b-2 border-[#1A1A1A] opacity-100' : 'opacity-40 hover:opacity-100'}`}>Strain-Life (ε-N)</button>
+                <button type="button" onClick={() => setFatigueModule('data_fitting')} className={`pb-2 text-[10px] uppercase font-bold tracking-widest ${fatigueModule === 'data_fitting' ? 'border-b-2 border-[#1A1A1A] opacity-100' : 'opacity-40 hover:opacity-100'}`}>Data Fitting</button>
                 <button type="button" onClick={() => setFatigueModule('reliability')} className={`pb-2 text-[10px] uppercase font-bold tracking-widest ${fatigueModule === 'reliability' ? 'border-b-2 border-[#1A1A1A] opacity-100' : 'opacity-40 hover:opacity-100'}`}>Reliability STATS</button>
               </div>
 
               {/* Parameters */}
               <div className="group pt-2">
                 <label className="block text-[9px] uppercase tracking-tighter font-bold mb-3 flex items-center gap-2">
-                  <Settings2 className="w-3 h-3" /> {fatigueModule === 'stress_life' ? 'S-N Parameters' : fatigueModule === 'strain_life' ? 'Local Strain parameters' : 'Weibull & Stats'}
+                  <Settings2 className="w-3 h-3" /> {fatigueModule === 'stress_life' ? 'S-N Parameters' : fatigueModule === 'strain_life' ? 'Local Strain parameters' : fatigueModule === 'data_fitting' ? 'Data Extraction' : 'Weibull & Stats'}
                 </label>
                 
                 <div className="space-y-3 mt-4">
@@ -490,6 +498,37 @@ export default function PyLifeDashboard() {
                     </div>
                   )}
 
+                  {fatigueModule === 'data_fitting' && (
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-end">
+                        <label className="text-xs font-medium flex items-center">
+                          Data Fitting Options
+                          <InfoTooltip content="Fit Wöhler (S-N) curve parameters from experimental fatigue data points." />
+                        </label>
+                        <select 
+                          value={fittingType}
+                          className="bg-black/5 border border-black/10 px-2 py-1 text-[9px] uppercase font-bold outline-none cursor-pointer hover:bg-black/10 transition-colors"
+                          onChange={(e) => setFittingType(e.target.value)}
+                        >
+                            <option value="sn_curve">S-N Curve (Stress-Life)</option>
+                            <option value="en_curve">ε-N Curve (Strain-Life)</option>
+                        </select>
+                      </div>
+                      <p className="text-[9px] opacity-60 mt-1 leading-relaxed">
+                        Paste your raw fatigue experimental data. Format: <b>Stress/Strain Amplitude, Cycles</b> per line.
+                        We will evaluate this dataset to extract the material parameters using statistical fitting.
+                      </p>
+                      <div className="space-y-2">
+                        <textarea
+                          value={testData}
+                          onChange={(e) => setTestData(e.target.value)}
+                          className="w-full bg-white/50 border border-black/20 p-2 text-xs font-mono h-[140px] outline-none focus:border-[#1A1A1A]"
+                          placeholder="300, 10000&#10;280, 50000&#10;250, 200000"
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   {fatigueModule === 'reliability' && (
                     <div className="space-y-4">
                       <div className="flex justify-between items-end">
@@ -568,7 +607,7 @@ export default function PyLifeDashboard() {
                      Computing...
                   </>
                 ) : (
-                  'Execute Computation'
+                  fatigueModule === 'data_fitting' ? 'Extract Parameters' : 'Execute Computation'
                 )}
               </button>
             </form>
@@ -647,11 +686,30 @@ export default function PyLifeDashboard() {
                          {result.error_details}
                        </div>
                     </div>
+                  ) : fatigueModule === 'data_fitting' && result ? (
+                    <div className="flex-1 flex flex-col justify-center py-6 px-4">
+                      <span className="text-[10px] uppercase tracking-widest block mb-6 opacity-60">Fitted Parameters</span>
+                      <div className="grid grid-cols-2 gap-4">
+                        {Object.entries(result).map(([key, val]) => (
+                          <div key={key} className="border border-black/10 p-4">
+                            <span className="text-[10px] uppercase font-bold opacity-60 block mb-2">{key.replace(/_/g, ' ')}</span>
+                            <span className="font-mono text-lg">{typeof val === 'number' ? val.toPrecision(5) : String(val)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   ) : viewMode === 'result' ? (
                     <div className="flex-1 flex flex-col justify-center items-center py-10">
                        <span className="text-[10px] uppercase tracking-widest block mb-4 opacity-60">Estimated Cycles (N)</span>
                        <div className="text-6xl md:text-8xl font-light tracking-tighter flex items-center justify-center gap-4 text-[#1A1A1A]">
                          {result.estimated_life_cycles?.toLocaleString() || "N/A"}
+                       </div>
+                    </div>
+                  ) : fatigueModule === 'data_fitting' ? (
+                    <div className="flex-1 flex flex-col justify-center items-center py-10 opacity-50">
+                       <span className="text-[10px] uppercase tracking-widest block mb-4">Awaiting Extraction</span>
+                       <div className="text-sm tracking-tighter text-[#1A1A1A]">
+                         Provide test data and simulate to extract parameters.
                        </div>
                     </div>
                   ) : (
@@ -713,11 +771,11 @@ export default function PyLifeDashboard() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 shrink-0">
               <div className="border-t border-black/10 pt-4">
                 <span className="text-[9px] uppercase font-bold block mb-1 opacity-50">Active Module</span>
-                <div className="font-serif text-lg italic">{fatigueModule === 'stress_life' ? 'S-N Curve' : fatigueModule === 'strain_life' ? 'ε-N Curve' : 'Weibull'}</div>
+                <div className="font-serif text-lg italic">{fatigueModule === 'stress_life' ? 'S-N Curve' : fatigueModule === 'strain_life' ? 'ε-N Curve' : fatigueModule === 'data_fitting' ? 'Data Extraction' : 'Weibull'}</div>
               </div>
               <div className="border-t border-black/10 pt-4">
                 <span className="text-[9px] uppercase font-bold block mb-1 opacity-50">Key Metric</span>
-                <div className="font-serif text-lg italic capitalize">{fatigueModule === 'stress_life' ? `k=${k1}` : fatigueModule === 'strain_life' ? `Kt=${kt}` : `β=${weibullBeta}`}</div>
+                <div className="font-serif text-lg italic capitalize">{fatigueModule === 'stress_life' ? `k=${k1}` : fatigueModule === 'strain_life' ? `Kt=${kt}` : fatigueModule === 'data_fitting' ? 'N/A' : `β=${weibullBeta}`}</div>
               </div>
               <div className="border-t border-black/10 pt-4">
                 <span className="text-[9px] uppercase font-bold block mb-1 opacity-50">Analysis type</span>
