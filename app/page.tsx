@@ -6,9 +6,9 @@ import { motion } from 'motion/react';
 import { ComposedChart, Line, Scatter, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 
 const InfoTooltip = ({ content }: { content: string }) => (
-  <div className="group relative inline-flex items-center justify-center ml-1">
-    <Info className="w-[10px] h-[10px] opacity-40 hover:opacity-100 cursor-help" />
-    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-[#1A1A1A] text-white text-[10px] leading-relaxed hidden group-hover:block z-50 rounded-sm font-sans normal-case tracking-normal shadow-xl">
+  <div className="relative inline-flex items-center justify-center ml-1">
+    <Info className="w-[10px] h-[10px] opacity-40 hover:opacity-100 cursor-help peer" />
+    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-[#1A1A1A] text-white text-[10px] leading-relaxed hidden peer-hover:block hover:block z-50 rounded-sm font-sans normal-case tracking-normal shadow-xl">
       {content}
       <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#1A1A1A]" />
     </div>
