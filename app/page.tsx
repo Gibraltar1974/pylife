@@ -34,6 +34,8 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function PyLifeDashboard() {
+  const [fatigueModule, setFatigueModule] = useState<'stress_life'|'strain_life'|'reliability'>('stress_life');
+  // S-N State
   const [stressAmplitude, setStressAmplitude] = useState(250);
   const [meanStress, setMeanStress] = useState(50);
   const [k1, setK1] = useState(5.0);
@@ -42,6 +44,21 @@ export default function PyLifeDashboard() {
   const [correction, setCorrection] = useState('goodman');
   const [analysisType, setAnalysisType] = useState('single_load');
   const [loadSequence, setLoadSequence] = useState('100, 200, -50, 250, -100, 50');
+
+  // Strain-Life State
+  const [kPrime, setKPrime] = useState(1200);
+  const [nPrime, setNPrime] = useState(0.15);
+  const [sigmaF, setSigmaF] = useState(1000);
+  const [bExp, setBExp] = useState(-0.08);
+  const [epsilonF, setEpsilonF] = useState(0.5);
+  const [cExp, setCExp] = useState(-0.6);
+  const [kt, setKt] = useState(2.5); // Notch factor
+  
+  // Reliability State
+  const [weibullBeta, setWeibullBeta] = useState(2.5);
+  const [weibullEta, setWeibullEta] = useState(100000);
+  const [targetReliability, setTargetReliability] = useState(0.95);
+
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'result'|'chart'>('result');
   const [result, setResult] = useState<null | { status: string; estimated_life_cycles?: number }>(null);
@@ -104,19 +121,34 @@ export default function PyLifeDashboard() {
 
     try {
       const payload: any = {
+        fatigue_module: fatigueModule,
         analysis_type: analysisType,
-        material_k1: k1,
-        material_nd: nd,
-        material_sd: sd,
-        correction_method: correction
       };
 
-      if (analysisType === 'single_load') {
-        payload.stress_amplitude = stressAmplitude;
-        payload.mean_stress = meanStress;
-      } else {
-        const parsedSequence = loadSequence.split(',').map(s => Number(s.trim())).filter(n => !isNaN(n));
-        payload.load_sequence = parsedSequence;
+      if (fatigueModule === 'stress_life') {
+        payload.material_k1 = k1;
+        payload.material_nd = nd;
+        payload.material_sd = sd;
+        payload.correction_method = correction;
+        if (analysisType === 'single_load') {
+          payload.stress_amplitude = stressAmplitude;
+          payload.mean_stress = meanStress;
+        } else {
+          const parsedSequence = loadSequence.split(',').map(s => Number(s.trim())).filter(n => !isNaN(n));
+          payload.load_sequence = parsedSequence;
+        }
+      } else if (fatigueModule === 'strain_life') {
+        payload.k_prime = kPrime;
+        payload.n_prime = nPrime;
+        payload.sigma_f = sigmaF;
+        payload.b_exp = bExp;
+        payload.epsilon_f = epsilonF;
+        payload.c_exp = cExp;
+        payload.notch_kt = kt;
+      } else if (fatigueModule === 'reliability') {
+        payload.weibull_beta = weibullBeta;
+        payload.weibull_eta = weibullEta;
+        payload.target_reliability = targetReliability;
       }
 
       const response = await fetch('/api/hf-compute', {
@@ -201,146 +233,221 @@ export default function PyLifeDashboard() {
 
             <form onSubmit={handleSimulate} className="space-y-6 flex-1 flex flex-col">
               
+              <div className="flex border-b border-black/10 gap-4">
+                <button type="button" onClick={() => setFatigueModule('stress_life')} className={`pb-2 text-[10px] uppercase font-bold tracking-widest ${fatigueModule === 'stress_life' ? 'border-b-2 border-[#1A1A1A] opacity-100' : 'opacity-40 hover:opacity-100'}`}>Stress-Life (S-N)</button>
+                <button type="button" onClick={() => setFatigueModule('strain_life')} className={`pb-2 text-[10px] uppercase font-bold tracking-widest ${fatigueModule === 'strain_life' ? 'border-b-2 border-[#1A1A1A] opacity-100' : 'opacity-40 hover:opacity-100'}`}>Strain-Life (ε-N)</button>
+                <button type="button" onClick={() => setFatigueModule('reliability')} className={`pb-2 text-[10px] uppercase font-bold tracking-widest ${fatigueModule === 'reliability' ? 'border-b-2 border-[#1A1A1A] opacity-100' : 'opacity-40 hover:opacity-100'}`}>Reliability STATS</button>
+              </div>
+
               {/* Parameters */}
-              <div className="group border-t border-black/10 pt-4">
+              <div className="group pt-2">
                 <label className="block text-[9px] uppercase tracking-tighter font-bold mb-3 flex items-center gap-2">
-                  <Settings2 className="w-3 h-3" /> PyLife Parameters
+                  <Settings2 className="w-3 h-3" /> {fatigueModule === 'stress_life' ? 'S-N Parameters' : fatigueModule === 'strain_life' ? 'Local Strain parameters' : 'Weibull & Stats'}
                 </label>
                 
                 <div className="space-y-6 mt-4">
-                  
-                  {/* Analysis Type */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium">Analysis Type</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button 
-                        type="button"
-                        onClick={() => setAnalysisType('single_load')}
-                        className={`py-2 text-[10px] uppercase font-bold border transition-colors ${analysisType === 'single_load' ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]' : 'bg-transparent border-black/20 hover:bg-black/5'}`}
-                      >
-                        Single Load
-                      </button>
-                      <button 
-                        type="button"
-                        onClick={() => setAnalysisType('rainflow')}
-                        className={`py-2 text-[10px] uppercase font-bold border transition-colors ${analysisType === 'rainflow' ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]' : 'bg-transparent border-black/20 hover:bg-black/5'}`}
-                      >
-                        Rainflow Counting
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Material Parameters (Wöhler Curve) */}
-                  <div className="border-t border-black/5 pt-4 space-y-4">
-                    <div className="flex justify-between items-end">
-                      <label className="text-xs font-medium">Material Properties</label>
-                      <select 
-                        className="bg-black/5 border border-black/10 px-2 py-1 text-[9px] uppercase font-bold outline-none cursor-pointer hover:bg-black/10 transition-colors"
-                        onChange={(e) => {
-                          if (e.target.value === 'steel') { setK1(5.0); setSd(200); setNd(2000000); }
-                          if (e.target.value === 'aluminum') { setK1(7.0); setSd(100); setNd(10000000); }
-                        }}
-                      >
-                        <option value="custom">Preset...</option>
-                        <option value="steel">Generic Steel</option>
-                        <option value="aluminum">Generic Aluminum</option>
-                      </select>
-                    </div>
-                    <p className="text-[9px] opacity-60 mt-1 leading-relaxed">
-                      These parameters define the Wöhler (S-N) curve of the <b>material</b> being analyzed. 
-                      <b>k</b> is the slope, <b>SD</b> is the endurance limit, and <b>ND</b> are the cycles at the limit.
-                    </p>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="space-y-1">
-                        <label className="text-[10px] uppercase tracking-tighter font-bold opacity-60">k (Slope)</label>
-                        <input 
-                          type="number" step="0.1" value={k1} onChange={e => setK1(Number(e.target.value))}
-                          className="w-full bg-white/50 border border-black/20 px-2 py-1.5 text-xs outline-none focus:border-[#1A1A1A] font-mono"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[10px] uppercase tracking-tighter font-bold opacity-60">SD (Endurance)</label>
-                        <input 
-                          type="number" step="1" value={sd} onChange={e => setSd(Number(e.target.value))}
-                          className="w-full bg-white/50 border border-black/20 px-2 py-1.5 text-xs outline-none focus:border-[#1A1A1A] font-mono"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[10px] uppercase tracking-tighter font-bold opacity-60">ND (Cycles)</label>
-                        <input 
-                          type="number" step="1000" value={nd} onChange={e => setNd(Number(e.target.value))}
-                          className="w-full bg-white/50 border border-black/20 px-2 py-1.5 text-xs outline-none focus:border-[#1A1A1A] font-mono"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Mean Stress Correction */}
-                  <div className="space-y-2 border-t border-black/5 pt-4">
-                    <label className="text-xs font-medium">Mean Stress Correction</label>
-                    <div className="text-[9px] opacity-60 mb-2 leading-relaxed">
-                      <p className="mb-1">Adjusts the fatigue life calculation for cycles with a non-zero mean stress. Tensile (positive) mean stress reduces life, while compressive (negative) increases it.</p>
-                      <ul className="list-disc pl-3 mt-1 space-y-0.5">
-                        <li><b>Goodman:</b> Conservative approach, typically preferred for brittle materials.</li>
-                        <li><b>Gerber:</b> Less conservative, a better fit for ductile metals.</li>
-                        <li><b>Morrow:</b> Often best suited for steel alloys where true fracture strength is known.</li>
-                      </ul>
-                    </div>
-                    <select 
-                      value={correction}
-                      onChange={(e) => setCorrection(e.target.value)}
-                      className="w-full bg-white/50 border border-black/20 px-3 py-2 text-xs outline-none focus:border-[#1A1A1A]"
-                    >
-                      <option value="none">None</option>
-                      <option value="goodman">Goodman</option>
-                      <option value="gerber">Gerber</option>
-                      <option value="morrow">Morrow</option>
-                    </select>
-                  </div>
-
-                  {/* Load Input based on type */}
-                  <div className="border-t border-black/5 pt-4">
-                    {analysisType === 'single_load' ? (
-                      <div className="space-y-6">
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-end">
-                            <label className="text-xs font-medium">Stress Amplitude (Sa)</label>
-                            <span className="font-serif italic text-lg">{stressAmplitude} <span className="text-[10px] font-sans not-italic uppercase ml-1">MPa</span></span>
-                          </div>
-                          <input
-                            type="range" min="10" max="1000" value={stressAmplitude} onChange={(e) => setStressAmplitude(Number(e.target.value))}
-                            className="w-full h-1 bg-black/10 appearance-none outline-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-[#1A1A1A] [&::-webkit-slider-thumb]:rounded-full cursor-pointer"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-end">
-                            <label className="text-xs font-medium">Mean Stress (Sm)</label>
-                            <span className="font-serif italic text-lg">{meanStress} <span className="text-[10px] font-sans not-italic uppercase ml-1">MPa</span></span>
-                          </div>
-                          <input
-                            type="range" min="-500" max="500" value={meanStress} onChange={(e) => setMeanStress(Number(e.target.value))}
-                            className="w-full h-1 bg-black/10 appearance-none outline-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-[#1A1A1A] [&::-webkit-slider-thumb]:rounded-full cursor-pointer"
-                          />
-                        </div>
-                      </div>
-                    ) : (
+                  {fatigueModule === 'stress_life' && (
+                    <>
+                      {/* Analysis Type */}
                       <div className="space-y-2">
-                        <div className="flex justify-between items-end">
-                          <label className="text-xs font-medium">Load Sequence (Peaks and Valleys)</label>
+                        <label className="text-xs font-medium">Analysis Type</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button 
+                            type="button"
+                            onClick={() => setAnalysisType('single_load')}
+                            className={`py-2 text-[10px] uppercase font-bold border transition-colors ${analysisType === 'single_load' ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]' : 'bg-transparent border-black/20 hover:bg-black/5'}`}
+                          >
+                            Single Load
+                          </button>
+                          <button 
+                            type="button"
+                            onClick={() => setAnalysisType('rainflow')}
+                            className={`py-2 text-[10px] uppercase font-bold border transition-colors ${analysisType === 'rainflow' ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]' : 'bg-transparent border-black/20 hover:bg-black/5'}`}
+                          >
+                            Rainflow Counting
+                          </button>
                         </div>
-                        <p className="text-[9px] opacity-60 mb-2 leading-relaxed">
-                          Enter the sequence of turning points (maximum and minimum stresses) from your load history. Rainflow algorithm only needs the extreme points (peaks/valleys) to extract the full stress cycles, not their duration in time.
-                        </p>
-                        <textarea
-                          value={loadSequence}
-                          onChange={(e) => setLoadSequence(e.target.value)}
-                          className="w-full bg-white/50 border border-black/20 px-3 py-2 text-sm outline-none focus:border-[#1A1A1A] font-mono whitespace-pre-wrap min-h-[80px]"
-                          placeholder="Example: 100, 200, -50, 250"
-                        />
                       </div>
-                    )}
-                  </div>
+
+                      {/* Material Parameters (Wöhler Curve) */}
+                      <div className="border-t border-black/5 pt-4 space-y-4">
+                        <div className="flex justify-between items-end">
+                          <label className="text-xs font-medium">Material Properties</label>
+                          <select 
+                            className="bg-black/5 border border-black/10 px-2 py-1 text-[9px] uppercase font-bold outline-none cursor-pointer hover:bg-black/10 transition-colors"
+                            onChange={(e) => {
+                              if (e.target.value === 'steel') { setK1(5.0); setSd(200); setNd(2000000); }
+                              if (e.target.value === 'aluminum') { setK1(7.0); setSd(100); setNd(10000000); }
+                            }}
+                          >
+                            <option value="custom">Preset...</option>
+                            <option value="steel">Generic Steel</option>
+                            <option value="aluminum">Generic Aluminum</option>
+                          </select>
+                        </div>
+                        <p className="text-[9px] opacity-60 mt-1 leading-relaxed">
+                          These parameters define the Wöhler (S-N) curve of the <b>material</b> being analyzed. 
+                          <b>k</b> is the slope, <b>SD</b> is the endurance limit, and <b>ND</b> are the cycles at the limit.
+                        </p>
+                        <div className="grid grid-cols-3 gap-4">
+                          <div className="space-y-1">
+                            <label className="text-[10px] uppercase tracking-tighter font-bold opacity-60">k (Slope)</label>
+                            <input 
+                              type="number" step="0.1" value={k1} onChange={e => setK1(Number(e.target.value))}
+                              className="w-full bg-white/50 border border-black/20 px-2 py-1.5 text-xs outline-none focus:border-[#1A1A1A] font-mono"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] uppercase tracking-tighter font-bold opacity-60">SD (Endurance)</label>
+                            <input 
+                              type="number" step="1" value={sd} onChange={e => setSd(Number(e.target.value))}
+                              className="w-full bg-white/50 border border-black/20 px-2 py-1.5 text-xs outline-none focus:border-[#1A1A1A] font-mono"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] uppercase tracking-tighter font-bold opacity-60">ND (Cycles)</label>
+                            <input 
+                              type="number" step="1000" value={nd} onChange={e => setNd(Number(e.target.value))}
+                              className="w-full bg-white/50 border border-black/20 px-2 py-1.5 text-xs outline-none focus:border-[#1A1A1A] font-mono"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Mean Stress Correction */}
+                      <div className="space-y-2 border-t border-black/5 pt-4">
+                        <label className="text-xs font-medium">Mean Stress Correction</label>
+                        <div className="text-[9px] opacity-60 mb-2 leading-relaxed">
+                          <p className="mb-1">Adjusts the fatigue life calculation for cycles with a non-zero mean stress.</p>
+                        </div>
+                        <select 
+                          value={correction}
+                          onChange={(e) => setCorrection(e.target.value)}
+                          className="w-full bg-white/50 border border-black/20 px-3 py-2 text-xs outline-none focus:border-[#1A1A1A]"
+                        >
+                          <option value="none">None</option>
+                          <option value="goodman">Goodman</option>
+                          <option value="gerber">Gerber</option>
+                          <option value="morrow">Morrow</option>
+                        </select>
+                      </div>
+
+                      {/* Load Input based on type */}
+                      <div className="border-t border-black/5 pt-4">
+                        {analysisType === 'single_load' ? (
+                          <div className="space-y-6">
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-end">
+                                <label className="text-xs font-medium">Stress Amplitude (Sa)</label>
+                                <span className="font-serif italic text-lg">{stressAmplitude} <span className="text-[10px] font-sans not-italic uppercase ml-1">MPa</span></span>
+                              </div>
+                              <input
+                                type="range" min="10" max="1000" value={stressAmplitude} onChange={(e) => setStressAmplitude(Number(e.target.value))}
+                                className="w-full h-1 bg-black/10 appearance-none outline-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-[#1A1A1A] [&::-webkit-slider-thumb]:rounded-full cursor-pointer"
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-end">
+                                <label className="text-xs font-medium">Mean Stress (Sm)</label>
+                                <span className="font-serif italic text-lg">{meanStress} <span className="text-[10px] font-sans not-italic uppercase ml-1">MPa</span></span>
+                              </div>
+                              <input
+                                type="range" min="-500" max="500" value={meanStress} onChange={(e) => setMeanStress(Number(e.target.value))}
+                                className="w-full h-1 bg-black/10 appearance-none outline-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-[#1A1A1A] [&::-webkit-slider-thumb]:rounded-full cursor-pointer"
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-end">
+                              <label className="text-xs font-medium">Load Sequence (Peaks and Valleys)</label>
+                            </div>
+                            <textarea
+                              value={loadSequence}
+                              onChange={(e) => setLoadSequence(e.target.value)}
+                              className="w-full bg-white/50 border border-black/20 px-3 py-2 text-sm outline-none focus:border-[#1A1A1A] font-mono whitespace-pre-wrap min-h-[80px]"
+                              placeholder="Example: 100, 200, -50, 250"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                  
+                  {fatigueModule === 'strain_life' && (
+                    <div className="space-y-4">
+                      <p className="text-[9px] opacity-60 mt-1 leading-relaxed">
+                        Local Strain Approach. Configure Ramberg-Osgood and Manson-Coffin-Basquin parameters.
+                      </p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase tracking-tighter font-bold opacity-60">K' (Strength Coeff)</label>
+                          <input type="number" step="10" value={kPrime} onChange={e => setKPrime(Number(e.target.value))} className="w-full bg-white/50 border border-black/20 px-2 py-1.5 text-xs outline-none focus:border-[#1A1A1A] font-mono"/>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase tracking-tighter font-bold opacity-60">n' (Hardening Exp)</label>
+                          <input type="number" step="0.01" value={nPrime} onChange={e => setNPrime(Number(e.target.value))} className="w-full bg-white/50 border border-black/20 px-2 py-1.5 text-xs outline-none focus:border-[#1A1A1A] font-mono"/>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase tracking-tighter font-bold opacity-60">σ'f (Fatigue Strength)</label>
+                          <input type="number" step="10" value={sigmaF} onChange={e => setSigmaF(Number(e.target.value))} className="w-full bg-white/50 border border-black/20 px-2 py-1.5 text-xs outline-none focus:border-[#1A1A1A] font-mono"/>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase tracking-tighter font-bold opacity-60">b (Strength Exp)</label>
+                          <input type="number" step="0.01" value={bExp} onChange={e => setBExp(Number(e.target.value))} className="w-full bg-white/50 border border-black/20 px-2 py-1.5 text-xs outline-none focus:border-[#1A1A1A] font-mono"/>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase tracking-tighter font-bold opacity-60">ε'f (Ductility)</label>
+                          <input type="number" step="0.05" value={epsilonF} onChange={e => setEpsilonF(Number(e.target.value))} className="w-full bg-white/50 border border-black/20 px-2 py-1.5 text-xs outline-none focus:border-[#1A1A1A] font-mono"/>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase tracking-tighter font-bold opacity-60">c (Ductility Exp)</label>
+                          <input type="number" step="0.01" value={cExp} onChange={e => setCExp(Number(e.target.value))} className="w-full bg-white/50 border border-black/20 px-2 py-1.5 text-xs outline-none focus:border-[#1A1A1A] font-mono"/>
+                        </div>
+                      </div>
+
+                      <div className="border-t border-black/5 pt-4 mt-4 space-y-2">
+                         <div className="flex justify-between items-end">
+                            <label className="text-xs font-medium">Notch Factor (Kt)</label>
+                            <span className="font-serif italic text-lg">{kt}</span>
+                         </div>
+                         <input
+                            type="range" min="1.0" max="5.0" step="0.1" value={kt} onChange={(e) => setKt(Number(e.target.value))}
+                            className="w-full h-1 bg-black/10 appearance-none outline-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-[#1A1A1A] [&::-webkit-slider-thumb]:rounded-full cursor-pointer"
+                         />
+                      </div>
+                    </div>
+                  )}
+
+                  {fatigueModule === 'reliability' && (
+                    <div className="space-y-4">
+                      <p className="text-[9px] opacity-60 mt-1 leading-relaxed">
+                        Assess fatigue failure probability and survival rates using Weibull distribution.
+                      </p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase tracking-tighter font-bold opacity-60">Weibull Shape (β)</label>
+                          <input type="number" step="0.1" value={weibullBeta} onChange={e => setWeibullBeta(Number(e.target.value))} className="w-full bg-white/50 border border-black/20 px-2 py-1.5 text-xs outline-none focus:border-[#1A1A1A] font-mono"/>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase tracking-tighter font-bold opacity-60">Weibull Scale (η)</label>
+                          <input type="number" step="1000" value={weibullEta} onChange={e => setWeibullEta(Number(e.target.value))} className="w-full bg-white/50 border border-black/20 px-2 py-1.5 text-xs outline-none focus:border-[#1A1A1A] font-mono"/>
+                        </div>
+                      </div>
+                      
+                      <div className="border-t border-black/5 pt-4 mt-4 space-y-2">
+                         <div className="flex justify-between items-end">
+                            <label className="text-xs font-medium">Target Reliability Goal</label>
+                            <span className="font-serif italic text-lg">{(targetReliability*100).toFixed(1)}%</span>
+                         </div>
+                         <input
+                            type="range" min="0.5" max="0.999" step="0.001" value={targetReliability} onChange={(e) => setTargetReliability(Number(e.target.value))}
+                            className="w-full h-1 bg-black/10 appearance-none outline-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-[#1A1A1A] [&::-webkit-slider-thumb]:rounded-full cursor-pointer"
+                         />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -509,16 +616,16 @@ export default function PyLifeDashboard() {
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-10 shrink-0">
               <div className="border-t border-black/10 pt-4">
-                <span className="text-[9px] uppercase font-bold block mb-1 opacity-50">Analysis Type</span>
-                <div className="font-serif text-lg italic">{analysisType === 'single_load' ? 'Single Load' : 'Rainflow'}</div>
+                <span className="text-[9px] uppercase font-bold block mb-1 opacity-50">Active Module</span>
+                <div className="font-serif text-lg italic">{fatigueModule === 'stress_life' ? 'S-N Curve' : fatigueModule === 'strain_life' ? 'ε-N Curve' : 'Weibull'}</div>
               </div>
               <div className="border-t border-black/10 pt-4">
-                <span className="text-[9px] uppercase font-bold block mb-1 opacity-50">Correction</span>
-                <div className="font-serif text-lg italic capitalize">{correction}</div>
+                <span className="text-[9px] uppercase font-bold block mb-1 opacity-50">Key Metric</span>
+                <div className="font-serif text-lg italic capitalize">{fatigueModule === 'stress_life' ? `k=${k1}` : fatigueModule === 'strain_life' ? `Kt=${kt}` : `β=${weibullBeta}`}</div>
               </div>
               <div className="border-t border-black/10 pt-4">
-                <span className="text-[9px] uppercase font-bold block mb-1 opacity-50">Wöhler k</span>
-                <div className="font-serif text-lg italic">{k1}</div>
+                <span className="text-[9px] uppercase font-bold block mb-1 opacity-50">Analysis type</span>
+                <div className="font-serif text-lg italic">{fatigueModule === 'stress_life' ? (analysisType === 'single_load' ? 'Single Load' : 'Rainflow') : 'Custom'}</div>
               </div>
               <div className="border-t border-black/10 pt-4">
                 <span className="text-[9px] uppercase font-bold block mb-1 opacity-50">API Status</span>
