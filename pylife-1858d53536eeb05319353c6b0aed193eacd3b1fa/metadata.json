@@ -1,0 +1,6 @@
+{
+  "name": "PyLife AI Interface",
+  "description": "Frontend boilerplate for exploring Bosch PyLife library via Hugging Face API",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

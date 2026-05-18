@@ -1,14 +1,38 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if false;
+    match /{document=**} { allow read, write: if false; }
+
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isSignedIn() { return request.auth != null; }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'credits', 'createdAt']) && 
+             data.keys().size() == 3 &&
+             data.email is string && data.email.size() <= 256 &&
+             data.credits is number &&
+             data.createdAt == request.time;
     }
+
+    function isAdmin() { return isSignedIn() && request.auth.token.email == 'jcasalgomez@gmail.com'; }
+
     match /users/{userId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-      allow update: if request.auth != null && request.auth.uid == userId 
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['email', 'credits']);
-      allow create: if request.auth != null && request.auth.uid == userId;
+      allow get: if isSignedIn() && request.auth.uid == userId && isValidId(userId);
+      allow create: if isSignedIn() 
+                    && request.auth.uid == userId
+                    && isValidId(userId)
+                    && isValidUser(incoming())
+                    && incoming().credits == 5; // Initial free credits
+      
+      // We allow the user to modify ONLY their credits
+      allow update: if isSignedIn()
+                    && request.auth.uid == userId
+                    && isValidId(userId)
+                    && incoming().diff(existing()).affectedKeys().hasOnly(['credits'])
+                    && incoming().credits is number
+                    && (incoming().credits == existing().credits - 1 || isAdmin()); // Only allow decrementing by 1 (used for computations) OR any if admin
     }
   }
 }

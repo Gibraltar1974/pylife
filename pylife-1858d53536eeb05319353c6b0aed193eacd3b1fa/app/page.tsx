@@ -1,11 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth, firestoreDb } from '../lib/firebase';
-import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
-import Login from '../components/Login';
-import { Activity, Settings2, Server, Globe2, Cpu, LineChart as LineChartIcon, CreditCard, Info, LogOut } from 'lucide-react';
+import { Activity, Settings2, Server, Globe2, Cpu, LineChart as LineChartIcon, CreditCard, Info } from 'lucide-react';
 import { motion } from 'motion/react';
 import { ComposedChart, Line, Scatter, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 
@@ -48,8 +44,6 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function PyLifeDashboard() {
-  const [user, authLoading, authError] = useAuthState(auth);
-
   const [fatigueModule, setFatigueModule] = useState<'stress_life'|'strain_life'|'data_fitting'|'reliability'>('stress_life');
   
   // Data Fitting State
@@ -85,26 +79,6 @@ export default function PyLifeDashboard() {
   const [result, setResult] = useState<null | { status: string; estimated_life_cycles?: number; extracted_parameters?: Record<string, any> }>(null);
   const [credits, setCredits] = useState<number>(0);
   const [notification, setNotification] = useState<{message: string, type: 'error' | 'success'} | null>(null);
-
-  useEffect(() => {
-    if (!user) return;
-
-    const userDocRef = doc(firestoreDb, 'users', user.uid);
-    const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
-      if (docSnap.exists()) {
-        setCredits(docSnap.data().credits || 0);
-      } else {
-        // Create initial config with 5 credits
-        setDoc(userDocRef, {
-          email: user.email,
-          credits: 5,
-          createdAt: new Date().toISOString()
-        }).catch(err => console.error("Error creating user doc: ", err));
-      }
-    });
-
-    return () => unsubscribe();
-  }, [user]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -162,7 +136,6 @@ export default function PyLifeDashboard() {
 
   const handleSimulate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
     if (credits <= 0) {
       setNotification({ message: "You don't have enough credits. Please click 'Purchase' to buy more.", type: 'error' });
       return;
@@ -221,9 +194,7 @@ export default function PyLifeDashboard() {
       }
       
       setResult(data);
-      // We also update firestore doc directly (rules allow decrementing by 1)
-      const userRef = doc(firestoreDb, 'users', user.uid);
-      await setDoc(userRef, { credits: credits - 1 }, { merge: true });
+      setCredits((prev) => prev - 1);
     } catch (error) {
       console.error(error);
       
@@ -248,18 +219,6 @@ export default function PyLifeDashboard() {
     }
   };
 
-  if (authLoading) {
-    return <div className="min-h-screen bg-[#FAF9F6] border border-[#1A1A1A] p-6 flex flex-col justify-center items-center font-sans tracking-widest text-[#1A1A1A] uppercase">Loading verification...</div>;
-  }
-
-  if (authError) {
-    return <div className="min-h-screen bg-[#FAF9F6] flex flex-col justify-center items-center">Error: {authError.message}</div>;
-  }
-
-  if (!user) {
-    return <Login />;
-  }
-
   return (
     <div className="min-h-screen bg-[#FAF9F6] text-[#1A1A1A] font-sans flex flex-col selection:bg-[#1A1A1A] selection:text-white">
       {notification && (
@@ -275,10 +234,7 @@ export default function PyLifeDashboard() {
           <span className="text-[10px] uppercase tracking-[0.2em] font-bold opacity-60 hidden md:inline">Structural Integrity Framework</span>
         </div>
         <div className="flex gap-4 md:gap-8 text-[10px] md:text-[11px] uppercase tracking-widest font-medium items-center">
-          <div className="flex items-center gap-2">
-            <span className="opacity-60">{user?.email}</span>
-          </div>
-          <div className="flex items-center gap-2 font-mono ml-4">
+          <div className="flex items-center gap-2 font-mono">
             <span className="opacity-60">Credits:</span>
             <span className="font-bold text-[#1A1A1A]">{credits}</span>
           </div>
@@ -288,13 +244,6 @@ export default function PyLifeDashboard() {
           >
             <CreditCard className="w-3 h-3" />
             Purchase
-          </button>
-          <button
-            onClick={() => auth.signOut()}
-            className="flex items-center gap-2 border border-black/20 px-3 py-2 hover:bg-black/10 transition-colors"
-            title="Log Out"
-          >
-            <LogOut className="w-3 h-3" />
           </button>
         </div>
       </nav>
