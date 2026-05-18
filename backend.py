@@ -102,7 +102,14 @@ def analyze(data: PyLifePayload):
             # Usar PyLife para el cálculo Wöhler
             # A partir de la versión >= 2.0 de pylife, se usa analyze() en lugar de calc()
             fd = woehler.FatigueData(df)
-            res = woehler.MaxLikeInf(fd).analyze()
+            try:
+                res = woehler.MaxLikeInf(fd).analyze()
+            except ValueError as ve:
+                if "two mixed load levels" in str(ve).lower() or "mixed load level" in str(ve).lower():
+                    # Fallback to MaxLikeFull which allows fewer mixed load levels
+                    res = woehler.MaxLikeFull(fd).analyze()
+                else:
+                    raise ve
             
             extracted_params = res.to_dict()
             

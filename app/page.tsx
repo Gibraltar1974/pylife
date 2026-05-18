@@ -48,7 +48,7 @@ export default function PyLifeDashboard() {
   
   // Data Fitting State
   const [fittingType, setFittingType] = useState('sn_curve');
-  const [testData, setTestData] = useState('300, 10000, 1\n280, 50000, 1\n250, 200000, 1\n210, 1000000, 1\n190, 5000000, 0\n180, 10000000, 0');
+  const [testData, setTestData] = useState('300, 10000, 1\n280, 50000, 1\n250, 200000, 1\n210, 1000000, 1\n200, 2000000, 1\n200, 10000000, 0\n190, 5000000, 1\n190, 10000000, 0\n180, 10000000, 0');
   // S-N State
   const [stressAmplitude, setStressAmplitude] = useState(250);
   const [meanStress, setMeanStress] = useState(50);
