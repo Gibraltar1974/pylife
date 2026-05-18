@@ -10,10 +10,8 @@ service cloud.firestore {
 
     function isValidUser(data) {
       return data.keys().hasAll(['email', 'credits', 'createdAt']) && 
-             data.keys().size() == 3 &&
-             data.email is string && data.email.size() <= 256 &&
-             data.credits is number &&
-             data.createdAt == request.time;
+             data.email is string &&
+             data.credits is number;
     }
 
     function isAdmin() { return isSignedIn() && request.auth.token.email == 'jcasalgomez@gmail.com'; }

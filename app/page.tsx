@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, firestoreDb } from '../lib/firebase';
-import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import Login from '../components/Login';
 import { Activity, Settings2, Server, Globe2, Cpu, LineChart as LineChartIcon, CreditCard, Info, LogOut } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -96,9 +96,9 @@ export default function PyLifeDashboard() {
       } else {
         // Create initial config with 5 credits
         setDoc(userDocRef, {
-          email: user.email,
+          email: user.email || "",
           credits: 5,
-          createdAt: new Date().toISOString()
+          createdAt: serverTimestamp()
         }).catch(err => console.error("Error creating user doc: ", err));
       }
     });
