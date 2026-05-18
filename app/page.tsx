@@ -1,9 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Activity, Settings2, Server, Globe2, Cpu, LineChart as LineChartIcon, CreditCard, Info } from 'lucide-react';
+import { Activity, Settings2, Server, Globe2, Cpu, LineChart as LineChartIcon, CreditCard, Info, LogOut, LogIn } from 'lucide-react';
 import { motion } from 'motion/react';
 import { ComposedChart, Line, Scatter, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import { useAuth } from '../components/AuthProvider';
+import { doc, getDoc, setDoc, updateDoc, increment } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 const InfoTooltip = ({ content }: { content: string }) => (
   <div className="relative inline-flex items-center justify-center ml-1">
@@ -44,6 +47,8 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function PyLifeDashboard() {
+  const { user, credits, loading: authLoading, signIn, logOut } = useAuth();
+  
   const [fatigueModule, setFatigueModule] = useState<'stress_life'|'strain_life'|'data_fitting'|'reliability'>('stress_life');
   
   // Data Fitting State
@@ -77,23 +82,29 @@ export default function PyLifeDashboard() {
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'result'|'chart'>('result');
   const [result, setResult] = useState<null | { status: string; estimated_life_cycles?: number; extracted_parameters?: Record<string, any> }>(null);
-  const [credits, setCredits] = useState<number>(0);
   const [notification, setNotification] = useState<{message: string, type: 'error' | 'success'} | null>(null);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && user) {
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('payment') === 'success') {
-        setNotification({ message: 'Pago verificado como exitoso. Tienes nuevos créditos disponibles.', type: 'success' });
-        setCredits(10);
-        window.history.replaceState(null, '', window.location.pathname);
+        const addUserCredits = async () => {
+          try {
+             await updateDoc(doc(db, 'users', user.uid), { credits: increment(10) });
+             setNotification({ message: 'Pago verificado como exitoso. Tienes nuevos créditos disponibles.', type: 'success' });
+             window.history.replaceState(null, '', window.location.pathname);
+          } catch (e) {
+             console.error("Failed to add credits: ", e);
+          }
+        };
+        addUserCredits();
       }
       if (urlParams.get('payment') === 'canceled') {
         setNotification({ message: 'El pago fue cancelado o no se completó.', type: 'error' });
         window.history.replaceState(null, '', window.location.pathname);
       }
     }
-  }, []);
+  }, [user]);
 
   const handlePurchase = async () => {
     try {
@@ -136,6 +147,10 @@ export default function PyLifeDashboard() {
 
   const handleSimulate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      setNotification({ message: "Por favor, inicia sesión primero.", type: 'error' });
+      return;
+    }
     if (credits <= 0) {
       setNotification({ message: "You don't have enough credits. Please click 'Purchase' to buy more.", type: 'error' });
       return;
@@ -179,10 +194,12 @@ export default function PyLifeDashboard() {
         payload.target_reliability = targetReliability;
       }
 
+      const idToken = await user.getIdToken(true);
       const response = await fetch('/api/hf-compute', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
         },
         body: JSON.stringify(payload),
       });
@@ -194,7 +211,6 @@ export default function PyLifeDashboard() {
       }
       
       setResult(data);
-      setCredits((prev) => prev - 1);
     } catch (error) {
       console.error(error);
       
@@ -219,6 +235,36 @@ export default function PyLifeDashboard() {
     }
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#FAF9F6] text-[#1A1A1A] flex items-center justify-center">
+        <Activity className="w-8 h-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-[#FAF9F6] text-[#1A1A1A] flex flex-col items-center justify-center p-6">
+        <div className="max-w-md w-full border border-[#1A1A1A] p-8 bg-white shadow-2xl flex flex-col items-center">
+           <Activity className="w-12 h-12 mb-6" />
+           <h1 className="font-serif italic text-4xl tracking-tight mb-2 text-center">Life Calculator.</h1>
+           <p className="text-[10px] uppercase tracking-[0.2em] font-bold opacity-60 mb-10 text-center">Structural Integrity Framework</p>
+           
+           <p className="text-sm text-center mb-8 opacity-80">Log in to track your fatigue analysis credits and synchronize your models across sessions.</p>
+           
+           <button 
+             onClick={signIn}
+             className="w-full bg-[#1A1A1A] text-white py-4 uppercase text-[11px] font-bold tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-black/80 transition-colors"
+           >
+             <LogIn className="w-4 h-4" />
+             Sign In with Google
+           </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#FAF9F6] text-[#1A1A1A] font-sans flex flex-col selection:bg-[#1A1A1A] selection:text-white">
       {notification && (
@@ -240,13 +286,21 @@ export default function PyLifeDashboard() {
           </div>
           <button 
             onClick={handlePurchase}
-            className="flex items-center gap-2 border border-[#1A1A1A] px-4 py-2 hover:bg-[#1A1A1A] hover:text-[#FAF9F6] transition-colors"
+            className="flex items-center gap-2 border border-[#1A1A1A] px-4 py-2 hover:bg-black/5 transition-colors"
           >
             <CreditCard className="w-3 h-3" />
             Purchase
           </button>
+          <button 
+            onClick={logOut}
+            className="flex items-center gap-2 border border-[#1A1A1A] bg-[#1A1A1A] text-[#FAF9F6] px-4 py-2 hover:bg-black/90 transition-colors"
+          >
+            <LogOut className="w-3 h-3" />
+            Sign Out
+          </button>
         </div>
       </nav>
+
 
       {/* Main Hero Section */}
       <main className="flex-1 flex flex-col px-6 md:px-12">

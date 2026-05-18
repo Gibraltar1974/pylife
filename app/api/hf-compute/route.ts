@@ -1,44 +1,49 @@
 import { NextResponse } from 'next/server';
+import { adminAuth, adminDb } from '../../../lib/firebase-admin';
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Missing or invalid Authorization header' }, { status: 401 });
+    }
+    const idToken = authHeader.split('Bearer ')[1];
+    let decodedToken;
+    try {
+      decodedToken = await adminAuth.verifyIdToken(idToken);
+    } catch (e) {
+      return NextResponse.json({ error: 'Unauthorized: Invalid token' }, { status: 401 });
+    }
+
+    const userId = decodedToken.uid;
+    const userRef = adminDb.collection('users').doc(userId);
     
-    // === ESTRUCTURA PARA STRIPE ===
-    // Aquí es donde validarás si el usuario tiene una suscripción activa o créditos
-    // antes de hacer la llamada a Hugging Face (que cuesta dinero).
-    
-    /*
-    import Stripe from 'stripe';
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-    
-    // 1. Obtener el ID del usuario (de Firebase, NextAuth, etc.)
-    const userId = "user_123"; 
-    
-    // 2. Buscar en tu base de datos el 'stripeCustomerId' de este usuario
-    const customerId = "cus_123"; 
-    
-    // 3. Verificar en Stripe si tiene una suscripción activa
-    const subscriptions = await stripe.subscriptions.list({
-       customer: customerId,
-       status: 'active',
+    let isAuthorized = false;
+    await adminDb.runTransaction(async (t) => {
+      const uDoc = await t.get(userRef);
+      if (!uDoc.exists) {
+        throw new Error('User not found');
+      }
+      const userData = uDoc.data();
+      if (userData?.credits > 0) {
+        t.update(userRef, { credits: userData.credits - 1 });
+        isAuthorized = true;
+      }
     });
-    
-    if (subscriptions.data.length === 0) {
-       // El usuario no ha pagado. 
-       // Podemos devolver un 402 (Payment Required) para que el frontend muestre un modal de pago.
+
+    if (!isAuthorized) {
        return NextResponse.json({ 
-         error: "Payment required. Por favor adquiere una suscripción.",
+         error: "Insufficient credits. Please acquire more.",
          requires_payment: true
        }, { status: 402 });
     }
-    */
-    // ================================
 
-    const HUGGING_FACE_URL = 'https://sigmaexacta-pylife.hf.space/analyze';
+    const body = await request.json();
     
-    // El token ahora se lee de las variables de entorno del servidor
-    // en lugar de pedírselo al usuario en la interfaz.
+    // === ESTRUCTURA PARA STRIPE ===
+    // (Omitted the old comment block for brevity, now we use actual credits)
+    
+    const HUGGING_FACE_URL = 'https://sigmaexacta-pylife.hf.space/analyze';
     const HF_TOKEN = process.env.HF_TOKEN;
 
     const headers: Record<string, string> = {
@@ -59,53 +64,33 @@ export async function POST(request: Request) {
 
     if (response.status === 404) {
       if (isHtml) {
-        return NextResponse.json(
-          { error: "Error 404: The Hugging Face Space was not found or the Token is invalid. (Private spaces return 404 HTML if the token is missing/wrong. Make sure HF_TOKEN is valid and the space is running)." },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: "Error 404: The Hugging Face Space was not found or the Token is invalid." }, { status: 404 });
       } else {
-        return NextResponse.json(
-          { error: "Error 404: The Space is reachable, but the endpoint '/analyze' does not exist in your Python app. Check your @app.post() path." },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: "Error 404: The endpoint does not exist." }, { status: 404 });
       }
     }
 
     if (response.status === 401) {
-      return NextResponse.json(
-        { error: "Error 401: Unauthorized. Check the HF_TOKEN environment variable." },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Error 401: Unauthorized. Check the HF_TOKEN environment variable." }, { status: 401 });
     }
 
     const contentType = response.headers.get("content-type");
     if (contentType && contentType.indexOf("application/json") !== -1) {
       const data = await response.json();
       if (!response.ok) {
-         return NextResponse.json(
-           { error: data.detail || data.error || `Server Error HTTP ${response.status}` },
-           { status: response.status }
-         );
+         return NextResponse.json({ error: data.detail || data.error || `Server Error HTTP ${response.status}` }, { status: response.status });
       }
       return NextResponse.json(data);
     } else {
       const textData = await response.text();
       if (response.status === 503 || textData.includes("Restarting")) {
-        return NextResponse.json(
-          { error: 'The API server is restarting (Error 503). Please wait.' },
-          { status: 503 }
-        );
+        return NextResponse.json({ error: 'The API server is restarting (Error 503). Please wait.' }, { status: 503 });
       }
-      return NextResponse.json(
-        { error: `Invalid response (${response.status}). Expected JSON.` },
-        { status: response.status }
-      );
+      return NextResponse.json({ error: `Invalid response (${response.status}). Expected JSON.` }, { status: response.status });
     }
 
   } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || "Internal Server Error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }
+
