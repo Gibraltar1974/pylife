@@ -1,10 +1,10 @@
 {
-  "projectId": "emergent-cave-rcf5x",
-  "appId": "1:836752608759:web:1558f42c27f2082d3f72f2",
-  "apiKey": "AIzaSyDCwYvBxZeex2oF9zv_2eO7-RFV3XmJAxE",
-  "authDomain": "emergent-cave-rcf5x.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-018cd117-4b95-4989-a796-4cda29b5bae8",
-  "storageBucket": "emergent-cave-rcf5x.firebasestorage.app",
-  "messagingSenderId": "836752608759",
-  "measurementId": ""
+  "projectId": "fatigueanalysis-8a652",
+  "appId": "1:521935100052:web:cdce97222545819046fc81",
+  "apiKey": "AIzaSyDWw__fzfZeRX0zeII9gEeB5YGrFT3c3m4",
+  "authDomain": "fatigueanalysis-8a652.firebaseapp.com",
+  "firestoreDatabaseId": "(default)",
+  "storageBucket": "fatigueanalysis-8a652.firebasestorage.app",
+  "messagingSenderId": "521935100052",
+  "measurementId": "G-58MGMJPHMB"
 }
