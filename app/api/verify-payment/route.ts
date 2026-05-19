@@ -51,7 +51,8 @@ export async function POST(request: Request) {
 
     // Usar una transacción para asegurar atomicidad
     await adminDb.runTransaction(async (transaction: any) => {
-      const userRef = adminDb.collection('users').doc(userId);
+      const db = adminDb!;
+      const userRef = db.collection('users').doc(userId);
       const userDoc = await transaction.get(userRef);
 
       let currentCredits = 5;
