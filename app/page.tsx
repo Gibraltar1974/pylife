@@ -7,6 +7,7 @@ import { doc, onSnapshot, setDoc, getDoc, serverTimestamp } from 'firebase/fires
 import Login from '../components/Login';
 import { Activity, Settings2, Server, Globe2, Cpu, LineChart as LineChartIcon, CreditCard, Info, LogOut } from 'lucide-react';
 import { motion } from 'motion/react';
+import Image from 'next/image';
 import { ComposedChart, Line, Scatter, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 
 const InfoTooltip = ({ content }: { content: string }) => (
@@ -107,19 +108,40 @@ export default function PyLifeDashboard() {
   }, [user]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && user && !authLoading) {
       const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('payment') === 'success') {
-        setNotification({ message: 'Pago verificado como exitoso. Tienes nuevos créditos disponibles.', type: 'success' });
-        setCredits(10);
-        window.history.replaceState(null, '', window.location.pathname);
+      const sessionId = urlParams.get('session_id');
+      
+      if (urlParams.get('payment') === 'success' && sessionId) {
+        fetch('/api/verify-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId, userId: user.uid })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success || data.message === 'Pago ya fue procesado anteriormente.') {
+            setNotification({ message: 'Pago verificado como exitoso. ¡Tienes nuevos créditos!', type: 'success' });
+            window.history.replaceState(null, '', window.location.pathname);
+          } else {
+            console.error(data.error);
+            setNotification({ message: 'Error verificando el pago: ' + (data.error || 'Server error'), type: 'error' });
+            window.history.replaceState(null, '', window.location.pathname);
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          setNotification({ message: 'Error de red verificando el pago.', type: 'error' });
+          window.history.replaceState(null, '', window.location.pathname);
+        });
       }
+      
       if (urlParams.get('payment') === 'canceled') {
         setNotification({ message: 'El pago fue cancelado o no se completó.', type: 'error' });
         window.history.replaceState(null, '', window.location.pathname);
       }
     }
-  }, []);
+  }, [user, authLoading]);
 
   const handlePurchase = async () => {
     try {
@@ -493,21 +515,21 @@ export default function PyLifeDashboard() {
                       <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-1">
                           <label className="text-[10px] uppercase tracking-tighter font-bold flex items-center opacity-70">
-                            K' (Strength Coeff)
+                            K&apos; (Strength Coeff)
                             <InfoTooltip content="Cyclic strength coefficient, obtained from fully reversed strain-controlled tests." />
                           </label>
                           <input type="number" step="10" value={kPrime} onChange={e => setKPrime(Number(e.target.value))} className="w-full bg-white/50 border border-black/20 px-2 py-1.5 text-xs outline-none focus:border-[#1A1A1A] font-mono"/>
                         </div>
                         <div className="space-y-1">
                           <label className="text-[10px] uppercase tracking-tighter font-bold flex items-center opacity-70">
-                            n' (Hardening Exp)
+                            n&apos; (Hardening Exp)
                             <InfoTooltip content="Cyclic strain hardening exponent." />
                           </label>
                           <input type="number" step="0.01" value={nPrime} onChange={e => setNPrime(Number(e.target.value))} className="w-full bg-white/50 border border-black/20 px-2 py-1.5 text-xs outline-none focus:border-[#1A1A1A] font-mono"/>
                         </div>
                         <div className="space-y-1">
                           <label className="text-[10px] uppercase tracking-tighter font-bold flex items-center opacity-70">
-                            σ'f (Fatigue Strength)
+                            σ&apos;f (Fatigue Strength)
                             <InfoTooltip content="Fatigue strength coefficient, intersects the elastic strain life line at 1 reversal." />
                           </label>
                           <input type="number" step="10" value={sigmaF} onChange={e => setSigmaF(Number(e.target.value))} className="w-full bg-white/50 border border-black/20 px-2 py-1.5 text-xs outline-none focus:border-[#1A1A1A] font-mono"/>
@@ -521,7 +543,7 @@ export default function PyLifeDashboard() {
                         </div>
                         <div className="space-y-1">
                           <label className="text-[10px] uppercase tracking-tighter font-bold flex items-center opacity-70">
-                            ε'f (Ductility)
+                            ε&apos;f (Ductility)
                             <InfoTooltip content="Fatigue ductility coefficient, intersects the plastic strain life line at 1 reversal." />
                           </label>
                           <input type="number" step="0.05" value={epsilonF} onChange={e => setEpsilonF(Number(e.target.value))} className="w-full bg-white/50 border border-black/20 px-2 py-1.5 text-xs outline-none focus:border-[#1A1A1A] font-mono"/>
@@ -848,14 +870,14 @@ export default function PyLifeDashboard() {
         <div>© 2026 Project Life Calculator</div>
         
         <div className="flex flex-col md:flex-row items-center gap-4 text-center md:text-left opacity-80">
-          <span className="leading-relaxed">Uses the open-source calculation engine <a href="https://pylife.readthedocs.io/en/stable/README.html#purpose-of-the-project" target="_blank" rel="noopener noreferrer" className="font-bold underline hover:opacity-100">"pylife"</a></span>
+          <span className="leading-relaxed">Uses the open-source calculation engine <a href="https://pylife.readthedocs.io/en/stable/README.html#purpose-of-the-project" target="_blank" rel="noopener noreferrer" className="font-bold underline hover:opacity-100">&quot;pylife&quot;</a></span>
           <a href="https://pylife.readthedocs.io/en/stable/README.html#purpose-of-the-project" target="_blank" rel="noopener noreferrer" className="transition-opacity hover:opacity-100 flex items-center justify-center">
-            <img src="/pylife-logo-16x9_res_800x450.webp" alt="pyLife Logo" className="h-8 object-contain" />
+            <Image src="/pylife-logo-16x9_res_800x450.webp" alt="pyLife Logo" width={64} height={32} className="h-8 w-auto object-contain" referrerPolicy="no-referrer" />
           </a>
           
           <span className="leading-relaxed">developed by</span>
           <a href="https://www.bosch.com/stories/bringing-open-source-to-mechanical-engineering/" target="_blank" rel="noopener noreferrer" className="transition-opacity hover:opacity-100 flex items-center">
-            <img src="/bosch-logo.png" alt="Bosch Logo" className="h-8 object-contain" />
+            <Image src="/bosch-logo.png" alt="Bosch Logo" width={64} height={32} className="h-8 w-auto object-contain" referrerPolicy="no-referrer" />
           </a>
         </div>
       </footer>

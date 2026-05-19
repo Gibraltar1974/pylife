@@ -45,7 +45,8 @@ export async function POST(request: Request) {
         },
       ],
       mode: 'payment', // Puede ser 'subscription' si quieres cobros mensuales
-      success_url: `${appUrl}?payment=success`,
+      client_reference_id: request.headers.get('x-user-id') || undefined,
+      success_url: `${appUrl}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}?payment=canceled`,
     });
 
